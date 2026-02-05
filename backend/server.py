@@ -582,7 +582,9 @@ async def create_application(request: Request, data: ApplicationCreate):
         {'$inc': {'applicants_count': 1}}
     )
     
-    return app_doc
+    # Return clean application without _id
+    clean_app = {k: v for k, v in app_doc.items() if k != '_id'}
+    return clean_app
 
 @api_router.get("/applications/my")
 async def get_my_applications(request: Request):
