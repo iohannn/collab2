@@ -1,115 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-    margin: 0;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-    font-family:
-        source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
-}
-
 @layer base {
     :root {
         --background: 0 0% 100%;
-        --foreground: 0 0% 3.9%;
+        --foreground: 220 13% 9%;
         --card: 0 0% 100%;
-        --card-foreground: 0 0% 3.9%;
+        --card-foreground: 220 13% 9%;
         --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 3.9%;
-        --primary: 0 0% 9%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 0 0% 96.1%;
-        --secondary-foreground: 0 0% 9%;
-        --muted: 0 0% 96.1%;
-        --muted-foreground: 0 0% 45.1%;
-        --accent: 0 0% 96.1%;
-        --accent-foreground: 0 0% 9%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 89.8%;
-        --input: 0 0% 89.8%;
-        --ring: 0 0% 3.9%;
-        --chart-1: 12 76% 61%;
-        --chart-2: 173 58% 39%;
-        --chart-3: 197 37% 24%;
+        --popover-foreground: 220 13% 9%;
+        --primary: 19 100% 50%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 243 75% 52%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 220 14% 96%;
+        --muted-foreground: 220 9% 46%;
+        --accent: 220 14% 96%;
+        --accent-foreground: 220 13% 9%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 220 13% 91%;
+        --input: 220 13% 91%;
+        --ring: 19 100% 50%;
+        --radius: 0.75rem;
+        --chart-1: 19 100% 50%;
+        --chart-2: 243 75% 52%;
+        --chart-3: 160 60% 45%;
         --chart-4: 43 74% 66%;
         --chart-5: 27 87% 67%;
-        --radius: 0.5rem;
-    }
-    .dark {
-        --background: 0 0% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 0 0% 3.9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 0 0% 3.9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 0 0% 98%;
-        --primary-foreground: 0 0% 9%;
-        --secondary: 0 0% 14.9%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 0 0% 14.9%;
-        --muted-foreground: 0 0% 63.9%;
-        --accent: 0 0% 14.9%;
-        --accent-foreground: 0 0% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 14.9%;
-        --input: 0 0% 14.9%;
-        --ring: 0 0% 83.1%;
-        --chart-1: 220 70% 50%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
     }
 }
 
-@layer base {
-    * {
-        @apply border-border;
+* {
+    @apply border-border;
+}
+
+body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Satoshi', 'Inter', system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', 'Clash Display', system-ui, sans-serif;
+    @apply tracking-tight;
+}
+
+/* Ticket Card Effect */
+.ticket-card {
+    @apply relative overflow-hidden;
+    background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+}
+
+.ticket-card::before {
+    content: '';
+    @apply absolute w-6 h-6 bg-background rounded-full -left-3 top-1/2 -translate-y-1/2;
+}
+
+.ticket-card::after {
+    content: '';
+    @apply absolute w-6 h-6 bg-background rounded-full -right-3 top-1/2 -translate-y-1/2;
+}
+
+/* Countdown Timer */
+.countdown-timer {
+    font-family: 'JetBrains Mono', monospace;
+    @apply text-primary font-bold tracking-wider;
+}
+
+/* Glass Header */
+.glass-header {
+    @apply bg-white/80 backdrop-blur-xl border-b border-border/50;
+}
+
+/* Urgency Pulse */
+@keyframes urgency-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.urgency-badge {
+    animation: urgency-pulse 2s ease-in-out infinite;
+}
+
+/* Marquee Animation */
+@keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+}
+
+.marquee-container {
+    @apply overflow-hidden whitespace-nowrap;
+}
+
+.marquee-content {
+    @apply inline-block;
+    animation: marquee 30s linear infinite;
+}
+
+/* Subtle Noise Texture */
+.noise-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Fade In Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
     }
-    body {
-        @apply bg-background text-foreground;
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-@layer base {
-    [data-debug-wrapper="true"] {
-        display: contents !important;
-    }
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+}
 
-    [data-debug-wrapper="true"] > * {
-        margin-left: inherit;
-        margin-right: inherit;
-        margin-top: inherit;
-        margin-bottom: inherit;
-        padding-left: inherit;
-        padding-right: inherit;
-        padding-top: inherit;
-        padding-bottom: inherit;
-        column-gap: inherit;
-        row-gap: inherit;
-        gap: inherit;
-        border-left-width: inherit;
-        border-right-width: inherit;
-        border-top-width: inherit;
-        border-bottom-width: inherit;
-        border-left-style: inherit;
-        border-right-style: inherit;
-        border-top-style: inherit;
-        border-bottom-style: inherit;
-        border-left-color: inherit;
-        border-right-color: inherit;
-        border-top-color: inherit;
-        border-bottom-color: inherit;
-    }
+.animation-delay-100 { animation-delay: 0.1s; }
+.animation-delay-200 { animation-delay: 0.2s; }
+.animation-delay-300 { animation-delay: 0.3s; }
+.animation-delay-400 { animation-delay: 0.4s; }
+.animation-delay-500 { animation-delay: 0.5s; }
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+}
+
+/* Button Hover Effects */
+.btn-primary {
+    @apply bg-primary text-primary-foreground rounded-full px-8 py-4 font-semibold transition-all duration-300;
+}
+
+.btn-primary:hover {
+    @apply scale-105 shadow-lg shadow-primary/25;
+}
+
+.btn-primary:active {
+    @apply scale-95;
+}
+
+/* Card Hover Effect */
+.hover-lift {
+    @apply transition-all duration-300;
+}
+
+.hover-lift:hover {
+    @apply -translate-y-1 shadow-xl;
+}
+
+/* Badge Styles */
+.badge-urgent {
+    @apply bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wider rounded-sm;
+}
+
+.badge-new {
+    @apply bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 text-xs font-bold uppercase tracking-wider rounded-sm;
+}
+
+.badge-pro {
+    @apply bg-secondary/10 text-secondary border border-secondary/20 px-2 py-0.5 text-xs font-bold uppercase tracking-wider rounded-sm;
+}
+
+/* Platform Colors */
+.platform-instagram {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500;
+}
+
+.platform-tiktok {
+    @apply bg-black;
+}
+
+.platform-youtube {
+    @apply bg-red-600;
 }
