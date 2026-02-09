@@ -184,12 +184,21 @@ const InfluencerDashboard = () => {
   return (
     <div className="min-h-screen bg-muted/30 py-8">
       <div className="max-w-7xl mx-auto px-6">
+        {/* Pending Reviews Banner */}
+        <PendingReviewsBanner />
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <UserCircle className="w-8 h-8 text-primary" />
               <h1 className="text-3xl font-heading font-bold">{t('influencer.profile_title')}</h1>
+              {profile?.avg_rating && (
+                <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-full">
+                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                  <span className="font-bold text-sm">{profile.avg_rating.toFixed(1)}</span>
+                </div>
+              )}
             </div>
             <p className="text-muted-foreground">Gestionează profilul și aplicațiile tale</p>
           </div>
