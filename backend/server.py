@@ -210,6 +210,7 @@ class InfluencerProfileCreate(BaseModel):
     instagram_url: Optional[str] = None
     tiktok_url: Optional[str] = None
     youtube_url: Optional[str] = None
+    featured_posts: List[str] = []  # URLs to Instagram, TikTok, YouTube posts
 
 class Collaboration(BaseModel):
     collab_id: str
