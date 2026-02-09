@@ -95,9 +95,18 @@ const PublicInfluencerProfile = () => {
               <p className="text-white/80">{profile.user.name}</p>
             )}
             
+            {/* Rating Badge */}
+            {profile.avg_rating && (
+              <div className="inline-flex items-center gap-2 mt-4 bg-white/20 px-4 py-2 rounded-full">
+                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                <span className="font-bold">{profile.avg_rating.toFixed(1)}</span>
+                <span className="text-white/70">({profile.review_count} recenzii)</span>
+              </div>
+            )}
+            
             {/* Available Badge */}
             {profile.available && (
-              <div className="inline-flex items-center gap-2 mt-4 bg-white/20 px-4 py-2 rounded-full">
+              <div className="inline-flex items-center gap-2 mt-3 bg-white/20 px-4 py-2 rounded-full">
                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                 <span className="text-sm font-medium">Disponibil pentru colaborări</span>
               </div>
