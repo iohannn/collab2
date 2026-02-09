@@ -481,6 +481,12 @@ class ColaboreazaAPITester:
             self.test_application_flow()
             self.test_payment_endpoints()
             
+            # NEW FEATURE TESTS
+            self.test_search_functionality()
+            self.test_admin_endpoints()
+            self.test_analytics_endpoints()
+            self.test_non_admin_access()
+            
         except Exception as e:
             print(f"❌ Test suite failed with error: {e}")
             
