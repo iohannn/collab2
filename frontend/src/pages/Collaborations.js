@@ -13,6 +13,7 @@ const API = `${BACKEND_URL}/api`;
 
 const Collaborations = () => {
   const { t } = useLanguage();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [collaborations, setCollaborations] = useState([]);
