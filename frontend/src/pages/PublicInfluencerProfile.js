@@ -261,6 +261,15 @@ const PublicInfluencerProfile = () => {
                 </div>
               </div>
             )}
+
+            {/* Reviews Section */}
+            {profile.reviews?.length > 0 && (
+              <ReviewsSection 
+                reviews={profile.reviews} 
+                avgRating={profile.avg_rating}
+                reviewCount={profile.review_count}
+              />
+            )}
           </div>
         </div>
       </div>
