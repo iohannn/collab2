@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends, Query
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -13,6 +13,10 @@ from datetime import datetime, timezone, timedelta
 import bcrypt
 import jwt
 import httpx
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import asyncio
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -30,6 +34,18 @@ JWT_EXPIRY_DAYS = 7
 # Stripe
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
 
+# Email Config (for cPanel SMTP)
+SMTP_HOST = os.environ.get('SMTP_HOST', 'localhost')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+SMTP_USER = os.environ.get('SMTP_USER', '')
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
+SMTP_FROM_EMAIL = os.environ.get('SMTP_FROM_EMAIL', 'noreply@colaboreaza.ro')
+SMTP_FROM_NAME = os.environ.get('SMTP_FROM_NAME', 'colaboreaza.ro')
+EMAIL_ENABLED = os.environ.get('EMAIL_ENABLED', 'false').lower() == 'true'
+
+# Admin Config
+ADMIN_EMAILS = os.environ.get('ADMIN_EMAILS', '').split(',')
+
 app = FastAPI(title="colaboreaza.ro API")
 api_router = APIRouter(prefix="/api")
 
@@ -37,13 +53,103 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# ============ EMAIL SERVICE ============
+
+async def send_email(to_email: str, subject: str, html_content: str, text_content: str = None):
+    """Send email via SMTP (cPanel compatible)"""
+    if not EMAIL_ENABLED:
+        logger.info(f"Email disabled. Would send to {to_email}: {subject}")
+        return False
+    
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"{SMTP_FROM_NAME} <{SMTP_FROM_EMAIL}>"
+        msg['To'] = to_email
+        
+        if text_content:
+            msg.attach(MIMEText(text_content, 'plain'))
+        msg.attach(MIMEText(html_content, 'html'))
+        
+        # Run SMTP in thread pool to not block
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _send_smtp, msg, to_email)
+        
+        logger.info(f"Email sent to {to_email}: {subject}")
+        return True
+    except Exception as e:
+        logger.error(f"Email failed to {to_email}: {e}")
+        return False
+
+def _send_smtp(msg, to_email):
+    """Synchronous SMTP send"""
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        if SMTP_USER and SMTP_PASSWORD:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+        server.sendmail(SMTP_FROM_EMAIL, to_email, msg.as_string())
+
+async def send_new_application_email(brand_email: str, brand_name: str, collab_title: str, influencer_name: str, influencer_username: str):
+    """Email brand when influencer applies"""
+    subject = f"Aplicație nouă pentru {collab_title}"
+    html_content = f"""
+    <html>
+    <body style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #FF4F00 0%, #FF6B2C 100%); padding: 30px; border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">colaboreaza.ro</h1>
+        </div>
+        <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+            <h2 style="color: #111827; margin-top: 0;">Aplicație nouă! 🎉</h2>
+            <p style="color: #6b7280;">Salut {brand_name},</p>
+            <p style="color: #374151;">Ai primit o nouă aplicație pentru colaborarea ta:</p>
+            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; color: #111827;"><strong>Colaborare:</strong> {collab_title}</p>
+                <p style="margin: 10px 0 0 0; color: #111827;"><strong>Creator:</strong> {influencer_name} (@{influencer_username})</p>
+            </div>
+            <a href="https://colaboreaza.ro/dashboard" style="display: inline-block; background: #FF4F00; color: white; padding: 12px 24px; border-radius: 50px; text-decoration: none; font-weight: 600;">Vezi aplicația</a>
+            <p style="color: #9ca3af; font-size: 12px; margin-top: 30px;">Primești acest email pentru că ai un cont pe colaboreaza.ro</p>
+        </div>
+    </body>
+    </html>
+    """
+    await send_email(brand_email, subject, html_content)
+
+async def send_application_status_email(influencer_email: str, influencer_name: str, collab_title: str, brand_name: str, status: str):
+    """Email influencer when application status changes"""
+    status_text = "acceptată" if status == "accepted" else "respinsă"
+    emoji = "🎉" if status == "accepted" else "😔"
+    color = "#059669" if status == "accepted" else "#dc2626"
+    
+    subject = f"Aplicația ta a fost {status_text} - {collab_title}"
+    html_content = f"""
+    <html>
+    <body style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #FF4F00 0%, #FF6B2C 100%); padding: 30px; border-radius: 12px 12px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">colaboreaza.ro</h1>
+        </div>
+        <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+            <h2 style="color: #111827; margin-top: 0;">Aplicația ta a fost {status_text} {emoji}</h2>
+            <p style="color: #6b7280;">Salut {influencer_name},</p>
+            <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; color: #111827;"><strong>Colaborare:</strong> {collab_title}</p>
+                <p style="margin: 10px 0 0 0; color: #111827;"><strong>Brand:</strong> {brand_name}</p>
+                <p style="margin: 10px 0 0 0;"><span style="background: {color}; color: white; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 600;">{status_text.upper()}</span></p>
+            </div>
+            {"<p style='color: #374151;'>Felicitări! Brandul te va contacta în curând pentru detalii.</p>" if status == "accepted" else "<p style='color: #374151;'>Nu te descuraja! Continuă să aplici la alte colaborări.</p>"}
+            <a href="https://colaboreaza.ro/dashboard" style="display: inline-block; background: #FF4F00; color: white; padding: 12px 24px; border-radius: 50px; text-decoration: none; font-weight: 600;">Vezi dashboard</a>
+        </div>
+    </body>
+    </html>
+    """
+    await send_email(influencer_email, subject, html_content)
+
 # ============ MODELS ============
 
 class UserBase(BaseModel):
     email: EmailStr
     name: str
     picture: Optional[str] = None
-    user_type: str = "influencer"  # "brand" or "influencer"
+    user_type: str = "influencer"
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -60,6 +166,7 @@ class User(UserBase):
     created_at: datetime
     is_pro: bool = False
     pro_expires_at: Optional[datetime] = None
+    is_admin: bool = False
 
 class BrandProfile(BaseModel):
     user_id: str
@@ -116,10 +223,11 @@ class Collaboration(BaseModel):
     deadline: datetime
     platform: str
     creators_needed: int
-    status: str = "active"  # active, closed, completed
+    status: str = "active"
     applicants_count: int = 0
     created_at: datetime
     is_public: bool = True
+    views: int = 0
 
 class CollaborationCreate(BaseModel):
     brand_name: str
@@ -142,7 +250,7 @@ class Application(BaseModel):
     message: str
     selected_deliverables: List[str]
     proposed_price: Optional[float] = None
-    status: str = "pending"  # pending, accepted, rejected
+    status: str = "pending"
     created_at: datetime
 
 class ApplicationCreate(BaseModel):
@@ -160,6 +268,11 @@ class PaymentTransaction(BaseModel):
     plan_type: str
     status: str
     created_at: datetime
+
+class ReportCreate(BaseModel):
+    reported_user_id: str
+    reason: str
+    details: Optional[str] = None
 
 # ============ AUTH HELPERS ============
 
@@ -186,7 +299,6 @@ def decode_jwt_token(token: str) -> Optional[dict]:
         return None
 
 async def get_current_user(request: Request) -> Optional[dict]:
-    # Check cookie first
     session_token = request.cookies.get('session_token')
     if session_token:
         session = await db.user_sessions.find_one({'session_token': session_token}, {'_id': 0})
@@ -200,16 +312,13 @@ async def get_current_user(request: Request) -> Optional[dict]:
                 user = await db.users.find_one({'user_id': session['user_id']}, {'_id': 0})
                 return user
     
-    # Check Authorization header
     auth_header = request.headers.get('Authorization')
     if auth_header and auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
-        # Check if it's a session token
         session = await db.user_sessions.find_one({'session_token': token}, {'_id': 0})
         if session:
             user = await db.users.find_one({'user_id': session['user_id']}, {'_id': 0})
             return user
-        # Check if it's a JWT token
         payload = decode_jwt_token(token)
         if payload:
             user = await db.users.find_one({'user_id': payload['user_id']}, {'_id': 0})
@@ -222,6 +331,12 @@ async def require_auth(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return user
 
+async def require_admin(request: Request) -> dict:
+    user = await require_auth(request)
+    if not user.get('is_admin') and user.get('email') not in ADMIN_EMAILS:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
 # ============ AUTH ENDPOINTS ============
 
 @api_router.post("/auth/register")
@@ -231,6 +346,8 @@ async def register(data: UserCreate):
         raise HTTPException(status_code=400, detail="Email already registered")
     
     user_id = f"user_{uuid.uuid4().hex[:12]}"
+    is_admin = data.email in ADMIN_EMAILS
+    
     user_doc = {
         'user_id': user_id,
         'email': data.email,
@@ -240,6 +357,7 @@ async def register(data: UserCreate):
         'picture': None,
         'is_pro': False,
         'pro_expires_at': None,
+        'is_admin': is_admin,
         'created_at': datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user_doc)
@@ -255,19 +373,17 @@ async def login(data: UserLogin, response: Response):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     token = create_jwt_token(user['user_id'], user['email'])
-    user_response = {k: v for k, v in user.items() if k != 'password_hash'}
+    user_response = {k: v for k, v in user.items() if k not in ['password_hash', '_id']}
     return {'token': token, 'user': user_response}
 
 @api_router.post("/auth/session")
 async def create_session(request: Request, response: Response):
-    """Exchange session_id from Google OAuth for session_token"""
     body = await request.json()
     session_id = body.get('session_id')
     
     if not session_id:
         raise HTTPException(status_code=400, detail="session_id required")
     
-    # Call Emergent auth to get user data
     async with httpx.AsyncClient() as client_http:
         auth_response = await client_http.get(
             "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
@@ -283,8 +399,9 @@ async def create_session(request: Request, response: Response):
     picture = auth_data.get('picture')
     session_token = auth_data.get('session_token', f"session_{uuid.uuid4().hex}")
     
-    # Find or create user
     user = await db.users.find_one({'email': email}, {'_id': 0})
+    is_admin = email in ADMIN_EMAILS
+    
     if not user:
         user_id = f"user_{uuid.uuid4().hex[:12]}"
         user = {
@@ -295,16 +412,17 @@ async def create_session(request: Request, response: Response):
             'user_type': 'influencer',
             'is_pro': False,
             'pro_expires_at': None,
+            'is_admin': is_admin,
             'created_at': datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(user)
     else:
         user_id = user['user_id']
-        await db.users.update_one({'user_id': user_id}, {'$set': {'picture': picture, 'name': name}})
+        await db.users.update_one({'user_id': user_id}, {'$set': {'picture': picture, 'name': name, 'is_admin': is_admin}})
         user['picture'] = picture
         user['name'] = name
+        user['is_admin'] = is_admin
     
-    # Store session
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     await db.user_sessions.delete_many({'user_id': user_id})
     await db.user_sessions.insert_one({
@@ -314,7 +432,6 @@ async def create_session(request: Request, response: Response):
         'created_at': datetime.now(timezone.utc).isoformat()
     })
     
-    # Set cookie
     response.set_cookie(
         key="session_token",
         value=session_token,
@@ -364,10 +481,8 @@ async def create_or_update_brand_profile(request: Request, profile: BrandProfile
     else:
         await db.brand_profiles.insert_one(profile_dict)
     
-    # Update user type
     await db.users.update_one({'user_id': user['user_id']}, {'$set': {'user_type': 'brand'}})
     
-    # Return clean profile without _id
     clean_profile = {k: v for k, v in profile_dict.items() if k != '_id'}
     return clean_profile
 
@@ -393,22 +508,18 @@ async def create_or_update_influencer_profile(request: Request, data: Influencer
     if existing:
         await db.influencer_profiles.update_one({'user_id': user['user_id']}, {'$set': profile_dict})
     else:
-        # Check username uniqueness
         username_exists = await db.influencer_profiles.find_one({'username': data.username})
         if username_exists:
             raise HTTPException(status_code=400, detail="Username already taken")
         await db.influencer_profiles.insert_one(profile_dict)
     
-    # Update user type
     await db.users.update_one({'user_id': user['user_id']}, {'$set': {'user_type': 'influencer'}})
     
-    # Return clean profile without _id
     clean_profile = {k: v for k, v in profile_dict.items() if k != '_id'}
     return clean_profile
 
 @api_router.get("/influencers/{username}")
 async def get_public_influencer_profile(username: str):
-    """Public endpoint for SEO-friendly influencer profiles"""
     profile = await db.influencer_profiles.find_one({'username': username}, {'_id': 0})
     if not profile:
         raise HTTPException(status_code=404, detail="Influencer not found")
@@ -424,7 +535,6 @@ async def list_influencers(
     limit: int = 20,
     skip: int = 0
 ):
-    """List influencers with filters"""
     query = {'available': available}
     if platform:
         query['platforms'] = platform
@@ -440,7 +550,6 @@ async def list_influencers(
 async def create_collaboration(request: Request, data: CollaborationCreate):
     user = await require_auth(request)
     
-    # Check PRO limit for brands
     if not user.get('is_pro'):
         active_count = await db.collaborations.count_documents({
             'brand_user_id': user['user_id'],
@@ -464,12 +573,12 @@ async def create_collaboration(request: Request, data: CollaborationCreate):
         'creators_needed': data.creators_needed,
         'status': 'active',
         'applicants_count': 0,
+        'views': 0,
         'created_at': datetime.now(timezone.utc).isoformat(),
         'is_public': data.is_public
     }
     
     await db.collaborations.insert_one(collab_doc)
-    # Return clean collaboration without _id
     clean_collab = {k: v for k, v in collab_doc.items() if k != '_id'}
     return clean_collab
 
@@ -478,10 +587,11 @@ async def list_collaborations(
     status: Optional[str] = "active",
     platform: Optional[str] = None,
     is_public: bool = True,
+    search: Optional[str] = None,
     limit: int = 20,
     skip: int = 0
 ):
-    """List public collaborations"""
+    """List public collaborations with optional full-text search"""
     query = {}
     if status:
         query['status'] = status
@@ -490,12 +600,20 @@ async def list_collaborations(
     if is_public:
         query['is_public'] = True
     
+    # Full-text search
+    if search:
+        query['$or'] = [
+            {'title': {'$regex': search, '$options': 'i'}},
+            {'description': {'$regex': search, '$options': 'i'}},
+            {'brand_name': {'$regex': search, '$options': 'i'}},
+            {'deliverables': {'$elemMatch': {'$regex': search, '$options': 'i'}}}
+        ]
+    
     collabs = await db.collaborations.find(query, {'_id': 0}).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
     return collabs
 
 @api_router.get("/collaborations/my")
 async def get_my_collaborations(request: Request):
-    """Get collaborations created by the current brand user"""
     user = await require_auth(request)
     collabs = await db.collaborations.find({'brand_user_id': user['user_id']}, {'_id': 0}).sort('created_at', -1).to_list(100)
     return collabs
@@ -505,6 +623,10 @@ async def get_collaboration(collab_id: str):
     collab = await db.collaborations.find_one({'collab_id': collab_id}, {'_id': 0})
     if not collab:
         raise HTTPException(status_code=404, detail="Collaboration not found")
+    
+    # Increment view count
+    await db.collaborations.update_one({'collab_id': collab_id}, {'$inc': {'views': 1}})
+    
     return collab
 
 @api_router.put("/collaborations/{collab_id}")
@@ -542,12 +664,10 @@ async def update_collaboration_status(collab_id: str, request: Request):
 async def create_application(request: Request, data: ApplicationCreate):
     user = await require_auth(request)
     
-    # Get influencer profile
     profile = await db.influencer_profiles.find_one({'user_id': user['user_id']}, {'_id': 0})
     if not profile:
         raise HTTPException(status_code=400, detail="Please complete your influencer profile first")
     
-    # Check if already applied
     existing = await db.applications.find_one({
         'collab_id': data.collab_id,
         'influencer_user_id': user['user_id']
@@ -555,7 +675,6 @@ async def create_application(request: Request, data: ApplicationCreate):
     if existing:
         raise HTTPException(status_code=400, detail="Already applied to this collaboration")
     
-    # Check collaboration exists and is active
     collab = await db.collaborations.find_one({'collab_id': data.collab_id})
     if not collab or collab['status'] != 'active':
         raise HTTPException(status_code=400, detail="Collaboration not available")
@@ -575,24 +694,30 @@ async def create_application(request: Request, data: ApplicationCreate):
     }
     
     await db.applications.insert_one(app_doc)
-    
-    # Update applicants count
     await db.collaborations.update_one(
         {'collab_id': data.collab_id},
         {'$inc': {'applicants_count': 1}}
     )
     
-    # Return clean application without _id
+    # Send email notification to brand
+    brand_user = await db.users.find_one({'user_id': collab['brand_user_id']}, {'_id': 0})
+    if brand_user:
+        asyncio.create_task(send_new_application_email(
+            brand_user['email'],
+            collab['brand_name'],
+            collab['title'],
+            user['name'],
+            profile.get('username', '')
+        ))
+    
     clean_app = {k: v for k, v in app_doc.items() if k != '_id'}
     return clean_app
 
 @api_router.get("/applications/my")
 async def get_my_applications(request: Request):
-    """Get applications made by the current influencer"""
     user = await require_auth(request)
     apps = await db.applications.find({'influencer_user_id': user['user_id']}, {'_id': 0}).sort('created_at', -1).to_list(100)
     
-    # Enrich with collaboration details
     for app in apps:
         collab = await db.collaborations.find_one({'collab_id': app['collab_id']}, {'_id': 0})
         app['collaboration'] = collab
@@ -601,7 +726,6 @@ async def get_my_applications(request: Request):
 
 @api_router.get("/applications/collab/{collab_id}")
 async def get_collab_applications(collab_id: str, request: Request):
-    """Get all applications for a collaboration (brand only)"""
     user = await require_auth(request)
     
     collab = await db.collaborations.find_one({'collab_id': collab_id})
@@ -612,7 +736,6 @@ async def get_collab_applications(collab_id: str, request: Request):
     
     apps = await db.applications.find({'collab_id': collab_id}, {'_id': 0}).sort('created_at', -1).to_list(100)
     
-    # Enrich with influencer profiles
     for app in apps:
         profile = await db.influencer_profiles.find_one({'user_id': app['influencer_user_id']}, {'_id': 0})
         app['influencer_profile'] = profile
@@ -623,25 +746,34 @@ async def get_collab_applications(collab_id: str, request: Request):
 async def update_application_status(application_id: str, request: Request):
     user = await require_auth(request)
     body = await request.json()
-    new_status = body.get('status')  # accepted or rejected
+    new_status = body.get('status')
     
     app = await db.applications.find_one({'application_id': application_id})
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
     
-    # Verify brand owns the collaboration
     collab = await db.collaborations.find_one({'collab_id': app['collab_id']})
     if collab['brand_user_id'] != user['user_id']:
         raise HTTPException(status_code=403, detail="Not authorized")
     
     await db.applications.update_one({'application_id': application_id}, {'$set': {'status': new_status}})
     
-    # If accepted, add to influencer's previous collaborations
     if new_status == 'accepted':
         await db.influencer_profiles.update_one(
             {'user_id': app['influencer_user_id']},
             {'$push': {'previous_collaborations': collab['title']}}
         )
+    
+    # Send email to influencer
+    influencer_user = await db.users.find_one({'user_id': app['influencer_user_id']}, {'_id': 0})
+    if influencer_user:
+        asyncio.create_task(send_application_status_email(
+            influencer_user['email'],
+            app['influencer_name'],
+            collab['title'],
+            collab['brand_name'],
+            new_status
+        ))
     
     return {'success': True}
 
@@ -665,7 +797,6 @@ async def create_checkout(request: Request):
     
     plan = PRO_PLANS[plan_id]
     
-    # Import Stripe checkout
     from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
     
     success_url = f"{origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
@@ -690,7 +821,6 @@ async def create_checkout(request: Request):
     
     session = await stripe_checkout.create_checkout_session(checkout_request)
     
-    # Create transaction record
     transaction_id = f"txn_{uuid.uuid4().hex[:12]}"
     await db.payment_transactions.insert_one({
         'transaction_id': transaction_id,
@@ -717,7 +847,6 @@ async def get_payment_status(session_id: str, request: Request):
     
     status = await stripe_checkout.get_checkout_status(session_id)
     
-    # Update transaction and user if paid
     if status.payment_status == 'paid':
         txn = await db.payment_transactions.find_one({'session_id': session_id})
         if txn and txn['status'] != 'completed':
@@ -730,7 +859,6 @@ async def get_payment_status(session_id: str, request: Request):
                 {'$set': {'status': 'completed'}}
             )
             
-            # Update user PRO status
             pro_expires = datetime.now(timezone.utc) + timedelta(days=duration_days)
             await db.users.update_one(
                 {'user_id': user['user_id']},
@@ -782,11 +910,374 @@ async def stripe_webhook(request: Request):
         logger.error(f"Webhook error: {e}")
         return {'received': True}
 
+# ============ ADMIN ENDPOINTS ============
+
+@api_router.get("/admin/stats")
+async def get_admin_stats(request: Request):
+    """Admin dashboard statistics"""
+    await require_admin(request)
+    
+    total_users = await db.users.count_documents({})
+    total_brands = await db.users.count_documents({'user_type': 'brand'})
+    total_influencers = await db.users.count_documents({'user_type': 'influencer'})
+    pro_users = await db.users.count_documents({'is_pro': True})
+    
+    total_collabs = await db.collaborations.count_documents({})
+    active_collabs = await db.collaborations.count_documents({'status': 'active'})
+    
+    total_applications = await db.applications.count_documents({})
+    pending_apps = await db.applications.count_documents({'status': 'pending'})
+    accepted_apps = await db.applications.count_documents({'status': 'accepted'})
+    
+    total_reports = await db.reports.count_documents({})
+    pending_reports = await db.reports.count_documents({'status': 'pending'})
+    
+    # Revenue from completed payments
+    pipeline = [
+        {'$match': {'status': 'completed'}},
+        {'$group': {'_id': None, 'total': {'$sum': '$amount'}}}
+    ]
+    revenue_result = await db.payment_transactions.aggregate(pipeline).to_list(1)
+    total_revenue = revenue_result[0]['total'] if revenue_result else 0
+    
+    return {
+        'users': {
+            'total': total_users,
+            'brands': total_brands,
+            'influencers': total_influencers,
+            'pro': pro_users
+        },
+        'collaborations': {
+            'total': total_collabs,
+            'active': active_collabs
+        },
+        'applications': {
+            'total': total_applications,
+            'pending': pending_apps,
+            'accepted': accepted_apps
+        },
+        'reports': {
+            'total': total_reports,
+            'pending': pending_reports
+        },
+        'revenue': {
+            'total': total_revenue,
+            'currency': 'EUR'
+        }
+    }
+
+@api_router.get("/admin/users")
+async def get_admin_users(
+    request: Request,
+    user_type: Optional[str] = None,
+    is_pro: Optional[bool] = None,
+    search: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0
+):
+    """List all users for admin"""
+    await require_admin(request)
+    
+    query = {}
+    if user_type:
+        query['user_type'] = user_type
+    if is_pro is not None:
+        query['is_pro'] = is_pro
+    if search:
+        query['$or'] = [
+            {'name': {'$regex': search, '$options': 'i'}},
+            {'email': {'$regex': search, '$options': 'i'}}
+        ]
+    
+    users = await db.users.find(query, {'_id': 0, 'password_hash': 0}).skip(skip).limit(limit).to_list(limit)
+    total = await db.users.count_documents(query)
+    
+    return {'users': users, 'total': total}
+
+@api_router.patch("/admin/users/{user_id}")
+async def update_user_admin(user_id: str, request: Request):
+    """Admin update user (ban, verify, set PRO, etc.)"""
+    await require_admin(request)
+    body = await request.json()
+    
+    allowed_fields = ['is_pro', 'is_banned', 'is_verified', 'user_type']
+    update_data = {k: v for k, v in body.items() if k in allowed_fields}
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No valid fields to update")
+    
+    result = await db.users.update_one({'user_id': user_id}, {'$set': update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {'success': True}
+
+@api_router.get("/admin/collaborations")
+async def get_admin_collaborations(
+    request: Request,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0
+):
+    """List all collaborations for admin"""
+    await require_admin(request)
+    
+    query = {}
+    if status:
+        query['status'] = status
+    if search:
+        query['$or'] = [
+            {'title': {'$regex': search, '$options': 'i'}},
+            {'brand_name': {'$regex': search, '$options': 'i'}}
+        ]
+    
+    collabs = await db.collaborations.find(query, {'_id': 0}).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.collaborations.count_documents(query)
+    
+    return {'collaborations': collabs, 'total': total}
+
+@api_router.delete("/admin/collaborations/{collab_id}")
+async def delete_collaboration_admin(collab_id: str, request: Request):
+    """Admin delete collaboration"""
+    await require_admin(request)
+    
+    result = await db.collaborations.delete_one({'collab_id': collab_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Collaboration not found")
+    
+    # Also delete related applications
+    await db.applications.delete_many({'collab_id': collab_id})
+    
+    return {'success': True}
+
+@api_router.get("/admin/reports")
+async def get_admin_reports(
+    request: Request,
+    status: Optional[str] = None,
+    limit: int = 50,
+    skip: int = 0
+):
+    """List all reports for admin"""
+    await require_admin(request)
+    
+    query = {}
+    if status:
+        query['status'] = status
+    
+    reports = await db.reports.find(query, {'_id': 0}).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.reports.count_documents(query)
+    
+    # Enrich with user info
+    for report in reports:
+        reporter = await db.users.find_one({'user_id': report['reporter_user_id']}, {'_id': 0, 'password_hash': 0})
+        reported = await db.users.find_one({'user_id': report['reported_user_id']}, {'_id': 0, 'password_hash': 0})
+        report['reporter'] = reporter
+        report['reported_user'] = reported
+    
+    return {'reports': reports, 'total': total}
+
+@api_router.patch("/admin/reports/{report_id}")
+async def update_report_admin(report_id: str, request: Request):
+    """Admin update report status"""
+    await require_admin(request)
+    body = await request.json()
+    
+    new_status = body.get('status')
+    action = body.get('action')  # 'ban_user', 'warn_user', 'dismiss'
+    
+    report = await db.reports.find_one({'report_id': report_id})
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    update_data = {'status': new_status, 'resolved_at': datetime.now(timezone.utc).isoformat()}
+    await db.reports.update_one({'report_id': report_id}, {'$set': update_data})
+    
+    # Take action if specified
+    if action == 'ban_user':
+        await db.users.update_one({'user_id': report['reported_user_id']}, {'$set': {'is_banned': True}})
+    
+    return {'success': True}
+
+# ============ REPORT USER ENDPOINT ============
+
+@api_router.post("/reports")
+async def create_report(request: Request, data: ReportCreate):
+    """Report a user"""
+    user = await require_auth(request)
+    
+    # Check reported user exists
+    reported = await db.users.find_one({'user_id': data.reported_user_id})
+    if not reported:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Can't report yourself
+    if data.reported_user_id == user['user_id']:
+        raise HTTPException(status_code=400, detail="Cannot report yourself")
+    
+    report_id = f"report_{uuid.uuid4().hex[:12]}"
+    report_doc = {
+        'report_id': report_id,
+        'reporter_user_id': user['user_id'],
+        'reported_user_id': data.reported_user_id,
+        'reason': data.reason,
+        'details': data.details,
+        'status': 'pending',
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.reports.insert_one(report_doc)
+    
+    return {'success': True, 'report_id': report_id}
+
+# ============ ANALYTICS ENDPOINTS (PRO USERS) ============
+
+@api_router.get("/analytics/brand")
+async def get_brand_analytics(request: Request):
+    """Analytics for brand users (PRO feature)"""
+    user = await require_auth(request)
+    
+    if not user.get('is_pro'):
+        raise HTTPException(status_code=403, detail="PRO subscription required for analytics")
+    
+    # Get all collaborations for this brand
+    collabs = await db.collaborations.find({'brand_user_id': user['user_id']}, {'_id': 0}).to_list(100)
+    
+    total_views = sum(c.get('views', 0) for c in collabs)
+    total_applicants = sum(c.get('applicants_count', 0) for c in collabs)
+    
+    # Application stats
+    all_apps = await db.applications.find({'collab_id': {'$in': [c['collab_id'] for c in collabs]}}, {'_id': 0}).to_list(1000)
+    
+    accepted = len([a for a in all_apps if a['status'] == 'accepted'])
+    rejected = len([a for a in all_apps if a['status'] == 'rejected'])
+    pending = len([a for a in all_apps if a['status'] == 'pending'])
+    
+    # Conversion rate
+    conversion_rate = (accepted / total_applicants * 100) if total_applicants > 0 else 0
+    
+    # Platform breakdown
+    platform_stats = {}
+    for c in collabs:
+        platform = c.get('platform', 'other')
+        if platform not in platform_stats:
+            platform_stats[platform] = {'collabs': 0, 'views': 0, 'applicants': 0}
+        platform_stats[platform]['collabs'] += 1
+        platform_stats[platform]['views'] += c.get('views', 0)
+        platform_stats[platform]['applicants'] += c.get('applicants_count', 0)
+    
+    # Monthly trend (last 6 months)
+    monthly_data = []
+    for i in range(6):
+        month_start = datetime.now(timezone.utc).replace(day=1) - timedelta(days=30*i)
+        month_end = (month_start + timedelta(days=32)).replace(day=1)
+        
+        month_collabs = [c for c in collabs if month_start.isoformat() <= c.get('created_at', '') < month_end.isoformat()]
+        month_apps = [a for a in all_apps if month_start.isoformat() <= a.get('created_at', '') < month_end.isoformat()]
+        
+        monthly_data.append({
+            'month': month_start.strftime('%b %Y'),
+            'collaborations': len(month_collabs),
+            'applications': len(month_apps)
+        })
+    
+    monthly_data.reverse()
+    
+    return {
+        'overview': {
+            'total_collaborations': len(collabs),
+            'active_collaborations': len([c for c in collabs if c['status'] == 'active']),
+            'total_views': total_views,
+            'total_applicants': total_applicants,
+            'conversion_rate': round(conversion_rate, 1)
+        },
+        'applications': {
+            'total': len(all_apps),
+            'accepted': accepted,
+            'rejected': rejected,
+            'pending': pending
+        },
+        'platform_breakdown': platform_stats,
+        'monthly_trend': monthly_data
+    }
+
+@api_router.get("/analytics/influencer")
+async def get_influencer_analytics(request: Request):
+    """Analytics for influencer users (PRO feature)"""
+    user = await require_auth(request)
+    
+    if not user.get('is_pro'):
+        raise HTTPException(status_code=403, detail="PRO subscription required for analytics")
+    
+    # Get all applications
+    apps = await db.applications.find({'influencer_user_id': user['user_id']}, {'_id': 0}).to_list(100)
+    
+    total_applied = len(apps)
+    accepted = len([a for a in apps if a['status'] == 'accepted'])
+    rejected = len([a for a in apps if a['status'] == 'rejected'])
+    pending = len([a for a in apps if a['status'] == 'pending'])
+    
+    # Success rate
+    success_rate = (accepted / (accepted + rejected) * 100) if (accepted + rejected) > 0 else 0
+    
+    # Get profile views (from profile collection)
+    profile = await db.influencer_profiles.find_one({'user_id': user['user_id']}, {'_id': 0})
+    profile_views = profile.get('views', 0) if profile else 0
+    
+    # Total earnings estimate (from accepted applications)
+    accepted_apps = [a for a in apps if a['status'] == 'accepted']
+    total_earnings = sum(a.get('proposed_price', 0) or 0 for a in accepted_apps)
+    
+    # Platform breakdown of applications
+    platform_stats = {}
+    for app in apps:
+        collab = await db.collaborations.find_one({'collab_id': app['collab_id']}, {'_id': 0})
+        if collab:
+            platform = collab.get('platform', 'other')
+            if platform not in platform_stats:
+                platform_stats[platform] = {'applied': 0, 'accepted': 0}
+            platform_stats[platform]['applied'] += 1
+            if app['status'] == 'accepted':
+                platform_stats[platform]['accepted'] += 1
+    
+    # Monthly activity
+    monthly_data = []
+    for i in range(6):
+        month_start = datetime.now(timezone.utc).replace(day=1) - timedelta(days=30*i)
+        month_end = (month_start + timedelta(days=32)).replace(day=1)
+        
+        month_apps = [a for a in apps if month_start.isoformat() <= a.get('created_at', '') < month_end.isoformat()]
+        month_accepted = [a for a in month_apps if a['status'] == 'accepted']
+        
+        monthly_data.append({
+            'month': month_start.strftime('%b %Y'),
+            'applications': len(month_apps),
+            'accepted': len(month_accepted)
+        })
+    
+    monthly_data.reverse()
+    
+    return {
+        'overview': {
+            'total_applications': total_applied,
+            'success_rate': round(success_rate, 1),
+            'profile_views': profile_views,
+            'total_earnings': total_earnings
+        },
+        'applications': {
+            'total': total_applied,
+            'accepted': accepted,
+            'rejected': rejected,
+            'pending': pending
+        },
+        'platform_breakdown': platform_stats,
+        'monthly_trend': monthly_data
+    }
+
 # ============ STATS ENDPOINTS ============
 
 @api_router.get("/stats/public")
 async def get_public_stats():
-    """Public stats for landing page"""
     total_collabs = await db.collaborations.count_documents({'status': 'active'})
     total_influencers = await db.influencer_profiles.count_documents({})
     total_applications = await db.applications.count_documents({})
