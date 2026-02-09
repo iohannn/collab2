@@ -561,6 +561,77 @@ const BrandDashboard = () => {
             )}
           </TabsContent>
 
+          {/* Pending Release Tab */}
+          <TabsContent value="pending_release">
+            {pendingReleaseCollabs.length > 0 ? (
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                  <Shield className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-blue-800">Colaborări în așteptarea eliberării fondurilor</p>
+                    <p className="text-sm text-blue-600">Verifică livrarea și eliberează fondurile. Creatorul va primi plata, iar recenziile vor fi deblocate.</p>
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {pendingReleaseCollabs.map((collab) => (
+                    <div key={collab.collab_id} className="relative">
+                      <CollaborationCard
+                        collaboration={collab}
+                        onClick={() => {
+                          setSelectedCollab(collab);
+                          fetchApplications(collab.collab_id);
+                        }}
+                      />
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          onClick={() => handleReleasePayment(collab)}
+                          className="flex-1 bg-green-600 hover:bg-green-700 text-white gap-1"
+                          data-testid={`release-btn-${collab.collab_id}`}
+                        >
+                          <Unlock className="w-4 h-4" /> Eliberează fonduri
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-white rounded-2xl border border-border">
+                <p className="text-muted-foreground">Nicio colaborare în așteptare</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Completed Tab */}
+          <TabsContent value="completed">
+            {completedCollabs.length > 0 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {completedCollabs.map((collab) => (
+                  <div key={collab.collab_id} className="relative">
+                    <CollaborationCard
+                      collaboration={collab}
+                      onClick={() => {
+                        setSelectedCollab(collab);
+                        fetchApplications(collab.collab_id);
+                      }}
+                    />
+                    {collab.payment_status === 'released' && (
+                      <div className="absolute top-4 left-4 z-10">
+                        <Badge className="bg-green-100 text-green-700 gap-1">
+                          <Unlock className="w-3 h-3" /> Fonduri eliberate
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-white rounded-2xl border border-border">
+                <p className="text-muted-foreground">Nicio colaborare finalizată</p>
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="closed">
             {closedCollabs.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
