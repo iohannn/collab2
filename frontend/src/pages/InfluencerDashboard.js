@@ -13,9 +13,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { SocialPostsEditor } from '../components/SocialPosts';
+import { DisputeDialog, CancellationDialog } from '../components/DisputeDialog';
+import { CollabMessaging } from '../components/CollabMessaging';
 import {
   UserCircle, Edit2, Save, Instagram, Youtube, Music2,
-  Briefcase, TrendingUp, Clock, CheckCircle, XCircle, ExternalLink, Star
+  Briefcase, TrendingUp, Clock, CheckCircle, XCircle, ExternalLink, Star,
+  Shield, AlertTriangle, MessageSquare, Unlock
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
