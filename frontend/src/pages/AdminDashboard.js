@@ -86,6 +86,14 @@ const AdminDashboard = () => {
         const data = await commissionsRes.json();
         setCommissions(data);
       }
+      if (disputesRes.ok) {
+        const data = await disputesRes.json();
+        setDisputes(data);
+      }
+      if (cancellationsRes.ok) {
+        const data = await cancellationsRes.json();
+        setCancellations(data);
+      }
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
       toast.error('Failed to load admin data');
