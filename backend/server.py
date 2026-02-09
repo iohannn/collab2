@@ -1210,9 +1210,9 @@ async def create_review(request: Request, data: ReviewCreate):
     return clean_review
 
 async def update_influencer_rating(user_id: str):
-    """Calculate and update influencer's average rating"""
+    """Calculate and update influencer's average rating (only revealed reviews)"""
     pipeline = [
-        {'$match': {'reviewed_user_id': user_id, 'reviewer_type': 'brand'}},
+        {'$match': {'reviewed_user_id': user_id, 'reviewer_type': 'brand', 'is_revealed': True}},
         {'$group': {'_id': None, 'avg_rating': {'$avg': '$rating'}, 'count': {'$sum': 1}}}
     ]
     result = await db.reviews.aggregate(pipeline).to_list(1)
