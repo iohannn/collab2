@@ -266,6 +266,10 @@ const AdminDashboard = () => {
               <Flag className="w-4 h-4 mr-2" />
               Reports ({reports.filter((r) => r.status === 'pending').length})
             </TabsTrigger>
+            <TabsTrigger value="commission" data-testid="admin-tab-commission">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Comisioane
+            </TabsTrigger>
           </TabsList>
 
           {/* Users Tab */}
