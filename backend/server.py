@@ -1621,6 +1621,28 @@ async def update_commission(request: Request):
     
     return {'commission_rate': float(new_rate)}
 
+@api_router.get("/admin/commissions")
+async def get_admin_commissions(request: Request, limit: int = 50, skip: int = 0):
+    """List all commissions (admin only)"""
+    await require_admin(request)
+    
+    commissions = await db.commissions.find({}, {'_id': 0}).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.commissions.count_documents({})
+    
+    pipeline = [
+        {'$group': {'_id': None, 'total_commission': {'$sum': '$commission_amount'}, 'total_gross': {'$sum': '$gross_amount'}}}
+    ]
+    summary = await db.commissions.aggregate(pipeline).to_list(1)
+    
+    return {
+        'commissions': commissions,
+        'total': total,
+        'summary': {
+            'total_commission': summary[0]['total_commission'] if summary else 0,
+            'total_gross': summary[0]['total_gross'] if summary else 0
+        }
+    }
+
 @api_router.get("/commission/calculate")
 async def calculate_commission(amount: float, request: Request):
     """Calculate commission for a given amount"""
