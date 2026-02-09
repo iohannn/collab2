@@ -60,6 +60,7 @@ const BrandDashboard = () => {
     deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     platform: 'instagram',
     creators_needed: 1,
+    collaboration_type: 'paid',
   });
 
   useEffect(() => {
