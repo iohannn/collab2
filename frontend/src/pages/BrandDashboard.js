@@ -23,10 +23,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popove
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { DisputeDialog, CancellationDialog } from '../components/DisputeDialog';
+import { CollabMessaging } from '../components/CollabMessaging';
 import {
   Plus, Calendar as CalendarIcon, CheckCircle, XCircle, Clock, Users,
   TrendingUp, Eye, MoreVertical, Trash2, Edit, Crown, Building2, Star,
-  Shield, Lock, Unlock, DollarSign, AlertCircle
+  Shield, Lock, Unlock, DollarSign, AlertCircle, MessageSquare, AlertTriangle, Play
 } from 'lucide-react';
 import {
   DropdownMenu,
