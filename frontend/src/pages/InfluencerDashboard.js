@@ -36,6 +36,10 @@ const InfluencerDashboard = () => {
   const [collaborations, setCollaborations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [actionCollab, setActionCollab] = useState(null);
+  const [messagingCollab, setMessagingCollab] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
