@@ -802,6 +802,199 @@ async def update_collaboration_status(collab_id: str, request: Request):
     await db.collaborations.update_one({'collab_id': collab_id}, {'$set': {'status': new_status}})
     return {'success': True}
 
+# ============ ESCROW PAYMENT ENDPOINTS ============
+
+REVIEW_REVEAL_TIMEOUT_DAYS = 14  # Days after release before reviews auto-reveal
+
+@api_router.post("/escrow/create/{collab_id}")
+async def create_escrow(collab_id: str, request: Request):
+    """Create an escrow payment for a paid collaboration"""
+    user = await require_auth(request)
+    
+    collab = await db.collaborations.find_one({'collab_id': collab_id})
+    if not collab:
+        raise HTTPException(status_code=404, detail="Collaboration not found")
+    if collab['brand_user_id'] != user['user_id']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if collab.get('collaboration_type', 'paid') != 'paid':
+        raise HTTPException(status_code=400, detail="Escrow only for paid collaborations")
+    
+    # Check no existing active escrow
+    existing = await db.escrow_payments.find_one({'collab_id': collab_id, 'status': {'$in': ['pending', 'secured']}})
+    if existing:
+        raise HTTPException(status_code=400, detail="Escrow already exists for this collaboration")
+    
+    rate = await get_commission_rate()
+    budget = collab.get('budget_max') or collab.get('budget_min', 0)
+    commission = round(budget * rate / 100, 2)
+    influencer_payout = round(budget - commission, 2)
+    total_secured = budget  # Brand pays full budget, commission deducted from it
+    
+    escrow_id = f"escrow_{uuid.uuid4().hex[:12]}"
+    escrow_doc = {
+        'escrow_id': escrow_id,
+        'collab_id': collab_id,
+        'brand_user_id': user['user_id'],
+        'total_amount': total_secured,
+        'influencer_payout': influencer_payout,
+        'platform_commission': commission,
+        'commission_rate': rate,
+        'payment_status': 'pending',
+        'status': 'pending',
+        'payment_provider': 'mock',  # Will be 'netopia' or 'stripe' in production
+        'payment_reference': None,
+        'created_at': datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.escrow_payments.insert_one(escrow_doc)
+    
+    clean = {k: v for k, v in escrow_doc.items() if k != '_id'}
+    return clean
+
+@api_router.post("/escrow/{escrow_id}/secure")
+async def secure_escrow_payment(escrow_id: str, request: Request):
+    """Simulate securing funds (mock provider). In production: redirect to Netopia/Stripe"""
+    user = await require_auth(request)
+    
+    escrow = await db.escrow_payments.find_one({'escrow_id': escrow_id})
+    if not escrow:
+        raise HTTPException(status_code=404, detail="Escrow not found")
+    if escrow['brand_user_id'] != user['user_id']:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if escrow['status'] != 'pending':
+        raise HTTPException(status_code=400, detail="Escrow is not in pending state")
+    
+    # MOCK PROVIDER: instantly mark as secured
+    # In production, this would redirect to Netopia payment page
+    payment_ref = f"pay_{uuid.uuid4().hex[:16]}"
+    
+    await db.escrow_payments.update_one({'escrow_id': escrow_id}, {'$set': {
+        'status': 'secured',
+        'payment_reference': payment_ref,
+        'secured_at': datetime.now(timezone.utc).isoformat()
+    }})
+    
+    await db.collaborations.update_one({'collab_id': escrow['collab_id']}, {'$set': {
+        'payment_status': 'secured',
+        'escrow_id': escrow_id
+    }})
+    
+    logger.info(f"Escrow {escrow_id} secured (mock) for collab {escrow['collab_id']}")
+    
+    return {
+        'success': True,
+        'escrow_id': escrow_id,
+        'status': 'secured',
+        'payment_reference': payment_ref,
+        'message': 'Fonduri securizate cu succes'
+    }
+
+@api_router.get("/escrow/collab/{collab_id}")
+async def get_escrow_for_collab(collab_id: str, request: Request):
+    """Get escrow payment details for a collaboration"""
+    user = await require_auth(request)
+    
+    escrow = await db.escrow_payments.find_one(
+        {'collab_id': collab_id, 'status': {'$nin': ['cancelled']}},
+        {'_id': 0}
+    )
+    if not escrow:
+        return None
+    
+    # Only brand owner or admin can see full details
+    collab = await db.collaborations.find_one({'collab_id': collab_id})
+    if collab and collab['brand_user_id'] != user['user_id'] and not user.get('is_admin'):
+        # Return limited info for influencers
+        return {
+            'escrow_id': escrow['escrow_id'],
+            'status': escrow['status'],
+            'total_amount': escrow['total_amount'],
+            'influencer_payout': escrow['influencer_payout'],
+            'payment_status': escrow['status']
+        }
+    
+    return escrow
+
+@api_router.post("/escrow/{escrow_id}/release")
+async def release_escrow(escrow_id: str, request: Request):
+    """Release escrowed funds after confirmation window"""
+    user = await require_auth(request)
+    
+    escrow = await db.escrow_payments.find_one({'escrow_id': escrow_id})
+    if not escrow:
+        raise HTTPException(status_code=404, detail="Escrow not found")
+    if escrow['brand_user_id'] != user['user_id'] and not user.get('is_admin'):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if escrow['status'] != 'completed_pending_release':
+        raise HTTPException(status_code=400, detail="Escrow not in release-ready state")
+    
+    # Record commission
+    rate = escrow.get('commission_rate', await get_commission_rate())
+    collab = await db.collaborations.find_one({'collab_id': escrow['collab_id']})
+    
+    accepted_apps = await db.applications.find({
+        'collab_id': escrow['collab_id'],
+        'status': 'accepted'
+    }, {'_id': 0}).to_list(100)
+    
+    for app in accepted_apps:
+        proposed_price = app.get('proposed_price') or escrow.get('total_amount', 0)
+        commission = round(proposed_price * rate / 100, 2)
+        net_amount = round(proposed_price - commission, 2)
+        
+        await db.commissions.insert_one({
+            'commission_id': f"comm_{uuid.uuid4().hex[:12]}",
+            'collab_id': escrow['collab_id'],
+            'application_id': app['application_id'],
+            'brand_user_id': escrow['brand_user_id'],
+            'influencer_user_id': app['influencer_user_id'],
+            'gross_amount': proposed_price,
+            'commission_rate': rate,
+            'commission_amount': commission,
+            'net_amount': net_amount,
+            'status': 'completed',
+            'created_at': datetime.now(timezone.utc).isoformat()
+        })
+    
+    # Update escrow and collaboration
+    now = datetime.now(timezone.utc).isoformat()
+    await db.escrow_payments.update_one({'escrow_id': escrow_id}, {'$set': {
+        'status': 'released',
+        'released_at': now
+    }})
+    await db.collaborations.update_one({'collab_id': escrow['collab_id']}, {'$set': {
+        'status': 'completed',
+        'payment_status': 'released',
+        'released_at': now
+    }})
+    
+    logger.info(f"Escrow {escrow_id} released for collab {escrow['collab_id']}")
+    
+    return {'success': True, 'status': 'released', 'message': 'Fonduri eliberate cu succes'}
+
+@api_router.post("/escrow/{escrow_id}/refund")
+async def refund_escrow(escrow_id: str, request: Request):
+    """Refund escrowed funds (admin or brand before release)"""
+    user = await require_auth(request)
+    
+    escrow = await db.escrow_payments.find_one({'escrow_id': escrow_id})
+    if not escrow:
+        raise HTTPException(status_code=404, detail="Escrow not found")
+    if escrow['brand_user_id'] != user['user_id'] and not user.get('is_admin'):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if escrow['status'] not in ('secured', 'completed_pending_release'):
+        raise HTTPException(status_code=400, detail="Cannot refund in current state")
+    
+    await db.escrow_payments.update_one({'escrow_id': escrow_id}, {'$set': {
+        'status': 'refunded',
+        'refunded_at': datetime.now(timezone.utc).isoformat()
+    }})
+    await db.collaborations.update_one({'collab_id': escrow['collab_id']}, {'$set': {
+        'payment_status': 'refunded'
+    }})
+    
+    return {'success': True, 'status': 'refunded'}
+
 # ============ APPLICATION ENDPOINTS ============
 
 @api_router.post("/applications")
