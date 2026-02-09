@@ -150,6 +150,25 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleUpdateCommission = async () => {
+    try {
+      const response = await fetch(`${API}/settings/commission`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ commission_rate: commissionRate }),
+      });
+
+      if (response.ok) {
+        toast.success(`Comision actualizat la ${commissionRate}%`);
+      } else {
+        toast.error('Eroare la actualizarea comisionului');
+      }
+    } catch (error) {
+      toast.error('Eroare la actualizarea comisionului');
+    }
+  };
+
   const filteredUsers = users.filter((u) => {
     const matchesSearch = search
       ? u.name?.toLowerCase().includes(search.toLowerCase()) ||
