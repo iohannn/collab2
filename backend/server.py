@@ -245,6 +245,7 @@ class CollaborationCreate(BaseModel):
     platform: str
     creators_needed: int = 1
     is_public: bool = True
+    collaboration_type: str = "paid"  # "paid", "barter", "free"
 
 class Application(BaseModel):
     application_id: str
