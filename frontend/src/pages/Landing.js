@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { CollaborationCard, BrandMarquee, StatsCard } from '../components/CollaborationCard';
+import { TopInfluencers } from '../components/TopInfluencers';
 import { Button } from '../components/ui/button';
 import { ArrowRight, Zap, Users, Clock, TrendingUp, CheckCircle } from 'lucide-react';
 
