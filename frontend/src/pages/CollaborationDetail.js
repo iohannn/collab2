@@ -157,6 +157,107 @@ const CollaborationDetail = () => {
     return null;
   }
 
+  // Auth gate - show teaser for non-authenticated users
+  if (!isAuthenticated) {
+    const redirectPath = `/collaborations/${id}`;
+    return (
+      <div className="min-h-screen bg-muted/30 py-12 px-6" data-testid="collab-detail-locked">
+        <div className="max-w-4xl mx-auto">
+          <Button variant="ghost" onClick={() => navigate('/collaborations')} className="mb-8">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            {t('collab.back')}
+          </Button>
+
+          {/* Teaser Header */}
+          <div className="bg-white rounded-2xl border border-border overflow-hidden">
+            <div className={`bg-gradient-to-r ${getPlatformColor(collaboration.platform)} p-8 text-white`}>
+              <div className="flex items-center gap-3 mb-4">
+                {getPlatformIcon(collaboration.platform)}
+                <Badge className="bg-white/20 text-white border-0 text-sm">{collaboration.platform}</Badge>
+                {collaboration.collaboration_type === 'paid' && (
+                  <Badge className="bg-white/20 text-white border-0 gap-1">
+                    <Shield className="w-3 h-3" /> Colaborare protejată
+                  </Badge>
+                )}
+              </div>
+              <h1 className="text-3xl font-heading font-bold">{collaboration.title}</h1>
+              <p className="text-white/80 mt-2">{collaboration.brand_name}</p>
+            </div>
+
+            <div className="p-8">
+              {/* Visible teaser info */}
+              <div className="grid grid-cols-3 gap-6 mb-8">
+                <div className="text-center p-4 bg-primary/5 rounded-xl">
+                  <p className="text-xs text-muted-foreground uppercase mb-1">{t('collab.budget')}</p>
+                  <p className="text-2xl font-mono font-bold text-primary">
+                    {collaboration.budget_max && collaboration.budget_max !== collaboration.budget_min
+                      ? `€${collaboration.budget_min} - €${collaboration.budget_max}`
+                      : `€${collaboration.budget_min}`}
+                  </p>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-xl">
+                  <p className="text-xs text-muted-foreground uppercase mb-1">{t('collab.applicants')}</p>
+                  <p className="text-2xl font-bold">{collaboration.applicants_count || 0}</p>
+                </div>
+                <div className="text-center p-4 bg-muted/50 rounded-xl">
+                  <p className="text-xs text-muted-foreground uppercase mb-1">{t('collab.creators_needed')}</p>
+                  <p className="text-2xl font-bold">{collaboration.creators_needed || 1}</p>
+                </div>
+              </div>
+
+              {/* Countdown visible */}
+              {collaboration.status === 'active' && (
+                <div className="bg-foreground text-background rounded-xl p-6 mb-8">
+                  <p className="text-sm text-muted-foreground/70 mb-4">{t('collab.time_left')}</p>
+                  <CountdownTimer deadline={collaboration.deadline} />
+                </div>
+              )}
+
+              {/* Lock overlay over description area */}
+              <div className="relative">
+                <div className="blur-[4px] select-none pointer-events-none">
+                  <h2 className="text-lg font-semibold mb-3">Descriere</h2>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {collaboration.description?.substring(0, 120)}{'...'.repeat(3)}
+                  </p>
+                  <div className="mt-6">
+                    <h3 className="font-medium mb-2">Deliverables</h3>
+                    <div className="flex gap-2 flex-wrap">
+                      {(collaboration.deliverables || []).slice(0, 2).map((d, i) => (
+                        <span key={i} className="bg-muted rounded-lg px-3 py-1 text-sm">██████</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Auth CTA overlay */}
+                <div className="absolute inset-0 flex items-center justify-center" data-testid="detail-auth-gate">
+                  <div className="bg-white/95 border border-border rounded-2xl p-8 shadow-xl text-center max-w-sm">
+                    <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                      <Lock className="w-6 h-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-bold mb-2">Autentifică-te pentru a vedea detaliile</h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Creează un cont gratuit pentru a vedea descrierea completă, deliverables și pentru a aplica.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                      <Button onClick={() => navigate(`/register?redirect=${encodeURIComponent(redirectPath)}`)} className="w-full" data-testid="detail-register-btn">
+                        Creează cont gratuit
+                      </Button>
+                      <Button variant="outline" onClick={() => navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`)} className="w-full" data-testid="detail-login-btn">
+                        Am deja un cont
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const formatBudget = () => {
     if (collaboration.budget_max && collaboration.budget_max !== collaboration.budget_min) {
       return `€${collaboration.budget_min} - €${collaboration.budget_max}`;
