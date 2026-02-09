@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Menu, X, User, LogOut, LayoutDashboard, Globe, ChevronDown } from 'lucide-react';
+import { Menu, X, User, LogOut, LayoutDashboard, Globe, ChevronDown, BarChart3, Shield } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
