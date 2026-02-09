@@ -25,7 +25,8 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   Plus, Calendar as CalendarIcon, CheckCircle, XCircle, Clock, Users,
-  TrendingUp, Eye, MoreVertical, Trash2, Edit, Crown, Building2, Star
+  TrendingUp, Eye, MoreVertical, Trash2, Edit, Crown, Building2, Star,
+  Shield, Lock, Unlock, DollarSign, AlertCircle
 } from 'lucide-react';
 import {
   DropdownMenu,
