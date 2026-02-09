@@ -31,6 +31,8 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [collaborations, setCollaborations] = useState([]);
   const [reports, setReports] = useState([]);
+  const [commissionRate, setCommissionRate] = useState(10);
+  const [commissions, setCommissions] = useState({ commissions: [], total: 0, summary: { total_commission: 0, total_gross: 0 } });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [userFilter, setUserFilter] = useState('all');
@@ -47,11 +49,13 @@ const AdminDashboard = () => {
 
   const fetchAdminData = async () => {
     try {
-      const [statsRes, usersRes, collabsRes, reportsRes] = await Promise.all([
+      const [statsRes, usersRes, collabsRes, reportsRes, commRateRes, commissionsRes] = await Promise.all([
         fetch(`${API}/admin/stats`, { headers: getAuthHeaders(), credentials: 'include' }),
         fetch(`${API}/admin/users?limit=50`, { headers: getAuthHeaders(), credentials: 'include' }),
         fetch(`${API}/admin/collaborations?limit=50`, { headers: getAuthHeaders(), credentials: 'include' }),
         fetch(`${API}/admin/reports?limit=50`, { headers: getAuthHeaders(), credentials: 'include' }),
+        fetch(`${API}/settings/commission`, { headers: getAuthHeaders(), credentials: 'include' }),
+        fetch(`${API}/admin/commissions?limit=50`, { headers: getAuthHeaders(), credentials: 'include' }),
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
@@ -66,6 +70,14 @@ const AdminDashboard = () => {
       if (reportsRes.ok) {
         const data = await reportsRes.json();
         setReports(data.reports || []);
+      }
+      if (commRateRes.ok) {
+        const data = await commRateRes.json();
+        setCommissionRate(data.commission_rate);
+      }
+      if (commissionsRes.ok) {
+        const data = await commissionsRes.json();
+        setCommissions(data);
       }
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
