@@ -312,6 +312,27 @@ const BrandDashboard = () => {
                   </div>
                 </div>
 
+                {/* Collaboration Type */}
+                <div>
+                  <Label>Tip colaborare</Label>
+                  <Select value={form.collaboration_type} onValueChange={(v) => setForm({ ...form, collaboration_type: v })}>
+                    <SelectTrigger data-testid="collab-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="paid">Plătită (escrow protejat)</SelectItem>
+                      <SelectItem value="barter">Barter (schimb de produse)</SelectItem>
+                      <SelectItem value="free">Gratuită</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {form.collaboration_type === 'paid' && (
+                    <div className="flex items-center gap-2 mt-2 text-sm text-green-700 bg-green-50 rounded-lg p-2">
+                      <Shield className="w-4 h-4 flex-shrink-0" />
+                      <span>Fondurile vor fi securizate până la livrare. Plata creatorului este garantată.</span>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <Label>{t('collab.title')}</Label>
                   <Input
