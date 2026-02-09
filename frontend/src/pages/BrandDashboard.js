@@ -495,6 +495,12 @@ const BrandDashboard = () => {
             <TabsTrigger value="closed" data-testid="tab-closed">
               {t('collab.closed')} ({closedCollabs.length})
             </TabsTrigger>
+            {disputedCollabs.length > 0 && (
+              <TabsTrigger value="disputed" data-testid="tab-disputed" className="text-red-600">
+                <AlertTriangle className="w-4 h-4 mr-1" />
+                Dispute ({disputedCollabs.length})
+              </TabsTrigger>
+            )}
             {selectedCollab && (
               <TabsTrigger value="applications" data-testid="tab-applications">
                 {t('collab.applications')} ({applications.length})
