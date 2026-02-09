@@ -153,11 +153,77 @@ const BrandDashboard = () => {
       });
 
       if (response.ok) {
-        toast.success('Status actualizat!');
+        const data = await response.json();
+        if (data.payment_status === 'completed_pending_release') {
+          toast.success('Colaborare finalizată! Fondurile vor fi eliberate după confirmare.');
+        } else {
+          toast.success('Status actualizat!');
+        }
         fetchCollaborations();
+      } else {
+        const err = await response.json();
+        toast.error(err.detail || 'Eroare la actualizarea statusului');
       }
     } catch (error) {
       toast.error('Failed to update status');
+    }
+  };
+
+  const handleSecurePayment = async (collab) => {
+    try {
+      // Step 1: Create escrow
+      const createRes = await fetch(`${API}/escrow/create/${collab.collab_id}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (!createRes.ok) {
+        const err = await createRes.json();
+        throw new Error(err.detail || 'Failed to create escrow');
+      }
+      const escrow = await createRes.json();
+
+      // Step 2: Secure payment (mock for now)
+      const secureRes = await fetch(`${API}/escrow/${escrow.escrow_id}/secure`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (!secureRes.ok) {
+        const err = await secureRes.json();
+        throw new Error(err.detail || 'Failed to secure payment');
+      }
+
+      toast.success('Fonduri securizate cu succes! Colaborarea este protejată.');
+      fetchCollaborations();
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleReleasePayment = async (collab) => {
+    try {
+      const escrowRes = await fetch(`${API}/escrow/collab/${collab.collab_id}`, {
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (!escrowRes.ok) throw new Error('Escrow not found');
+      const escrow = await escrowRes.json();
+
+      const releaseRes = await fetch(`${API}/escrow/${escrow.escrow_id}/release`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+      if (!releaseRes.ok) {
+        const err = await releaseRes.json();
+        throw new Error(err.detail || 'Failed to release');
+      }
+
+      toast.success('Fonduri eliberate! Creatorul va primi plata.');
+      fetchCollaborations();
+    } catch (error) {
+      toast.error(error.message);
     }
   };
 
