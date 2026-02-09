@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Clock, Users, ArrowRight, Instagram, Youtube, Music2, Shield } from 'lucide-react';
+import { Clock, Users, ArrowRight, Instagram, Youtube, Music2, Shield, Lock } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
-export const CollaborationCard = ({ collaboration, onClick }) => {
+export const CollaborationCard = ({ collaboration, onClick, locked = false }) => {
   const { t } = useLanguage();
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
 
