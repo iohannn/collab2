@@ -474,6 +474,86 @@ const AdminDashboard = () => {
               )}
             </div>
           </TabsContent>
+
+          {/* Commission Tab */}
+          <TabsContent value="commission">
+            <div className="space-y-6">
+              {/* Commission Settings */}
+              <div className="bg-white border border-border rounded-xl p-6">
+                <h3 className="text-lg font-semibold mb-4">Setări Comision</h3>
+                <div className="flex items-end gap-4">
+                  <div className="flex-1 max-w-xs">
+                    <label className="text-sm font-medium text-muted-foreground block mb-2">Rata comisionului (%)</label>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="100"
+                      value={commissionRate}
+                      onChange={(e) => setCommissionRate(parseFloat(e.target.value) || 0)}
+                      data-testid="commission-rate-input"
+                    />
+                  </div>
+                  <Button onClick={handleUpdateCommission} data-testid="save-commission-btn">
+                    Salvează
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground mt-3">
+                  Comisionul se aplică automat la finalizarea colaborărilor. Rata curentă: <strong>{commissionRate}%</strong>
+                </p>
+              </div>
+
+              {/* Commission Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white border border-border rounded-xl p-6 text-center">
+                  <DollarSign className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                  <p className="text-3xl font-bold">{commissions.total}</p>
+                  <p className="text-sm text-muted-foreground">Total Tranzacții</p>
+                </div>
+                <div className="bg-white border border-border rounded-xl p-6 text-center">
+                  <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-3xl font-bold">€{commissions.summary.total_gross.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">Valoare Brută</p>
+                </div>
+                <div className="bg-white border border-border rounded-xl p-6 text-center">
+                  <DollarSign className="w-8 h-8 text-primary mx-auto mb-2" />
+                  <p className="text-3xl font-bold">€{commissions.summary.total_commission.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">Total Comisioane</p>
+                </div>
+              </div>
+
+              {/* Commissions List */}
+              {commissions.commissions.length > 0 && (
+                <div className="bg-white border border-border rounded-xl p-6">
+                  <h3 className="text-lg font-semibold mb-4">Istoric Comisioane</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">ID</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Sumă Brută</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Comision</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Sumă Netă</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Data</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {commissions.commissions.map((c) => (
+                          <tr key={c.commission_id} className="border-b border-border hover:bg-muted/30">
+                            <td className="py-3 px-4 text-sm font-mono">{c.commission_id}</td>
+                            <td className="py-3 px-4 font-medium">€{c.gross_amount}</td>
+                            <td className="py-3 px-4 text-primary font-medium">€{c.commission_amount} ({c.commission_rate}%)</td>
+                            <td className="py-3 px-4">€{c.net_amount}</td>
+                            <td className="py-3 px-4 text-sm text-muted-foreground">{new Date(c.created_at).toLocaleDateString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
 
         {/* User Edit Dialog */}
