@@ -274,6 +274,24 @@ class ReportCreate(BaseModel):
     reason: str
     details: Optional[str] = None
 
+class ReviewCreate(BaseModel):
+    application_id: str
+    rating: int = Field(..., ge=1, le=5)
+    comment: Optional[str] = None
+
+class Review(BaseModel):
+    review_id: str
+    application_id: str
+    collab_id: str
+    reviewer_user_id: str
+    reviewer_name: str
+    reviewer_type: str  # "brand" or "influencer"
+    reviewed_user_id: str
+    rating: int
+    comment: Optional[str]
+    collab_title: str
+    created_at: datetime
+
 # ============ AUTH HELPERS ============
 
 def hash_password(password: str) -> str:
