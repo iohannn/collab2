@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Clock, Users, ArrowRight, Instagram, Youtube, Music2 } from 'lucide-react';
+import { Clock, Users, ArrowRight, Instagram, Youtube, Music2, Shield } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
