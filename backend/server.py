@@ -1227,9 +1227,12 @@ async def update_influencer_rating(user_id: str):
 
 @api_router.get("/reviews/user/{user_id}")
 async def get_user_reviews(user_id: str, limit: int = 20, skip: int = 0):
-    """Get reviews for a user (as the reviewed party)"""
+    """Get reviews for a user (only revealed reviews)"""
+    # Auto-reveal reviews past timeout
+    await auto_reveal_timed_out_reviews()
+    
     reviews = await db.reviews.find(
-        {'reviewed_user_id': user_id},
+        {'reviewed_user_id': user_id, 'is_revealed': True},
         {'_id': 0}
     ).sort('created_at', -1).skip(skip).limit(limit).to_list(limit)
     
