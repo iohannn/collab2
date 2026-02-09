@@ -252,10 +252,11 @@ const BrandDashboard = () => {
     }
   };
 
-  const activeCollabs = collaborations.filter((c) => c.status === 'active');
+  const activeCollabs = collaborations.filter((c) => ['active', 'in_progress'].includes(c.status));
   const pendingReleaseCollabs = collaborations.filter((c) => c.status === 'completed_pending_release');
   const completedCollabs = collaborations.filter((c) => c.status === 'completed');
-  const closedCollabs = collaborations.filter((c) => c.status === 'closed');
+  const disputedCollabs = collaborations.filter((c) => ['disputed', 'cancellation_requested_by_brand', 'cancellation_requested_by_influencer'].includes(c.status));
+  const closedCollabs = collaborations.filter((c) => ['closed', 'cancelled'].includes(c.status));
 
   return (
     <div className="min-h-screen bg-muted/30 py-8">
