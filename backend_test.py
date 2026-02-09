@@ -543,6 +543,10 @@ class ColaboreazaAPITester:
             self.test_analytics_endpoints()
             self.test_non_admin_access()
             
+            # REVIEW SYSTEM TESTS
+            self.test_review_system()
+            self.test_collaboration_status_update()
+            
         except Exception as e:
             print(f"❌ Test suite failed with error: {e}")
             
