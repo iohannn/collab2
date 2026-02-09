@@ -195,6 +195,7 @@ class InfluencerProfile(BaseModel):
     previous_collaborations: List[str] = []
     badges: List[str] = []
     available: bool = True
+    featured_posts: List[str] = []  # URLs to featured social media posts
 
 class InfluencerProfileCreate(BaseModel):
     username: str
