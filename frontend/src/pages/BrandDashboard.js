@@ -248,7 +248,9 @@ const BrandDashboard = () => {
   };
 
   const activeCollabs = collaborations.filter((c) => c.status === 'active');
-  const closedCollabs = collaborations.filter((c) => c.status === 'closed' || c.status === 'completed');
+  const pendingReleaseCollabs = collaborations.filter((c) => c.status === 'completed_pending_release');
+  const completedCollabs = collaborations.filter((c) => c.status === 'completed');
+  const closedCollabs = collaborations.filter((c) => c.status === 'closed');
 
   return (
     <div className="min-h-screen bg-muted/30 py-8">
