@@ -209,6 +209,15 @@ Build a web-based platform called "colaboreaza.ro" - a reverse influencer market
 | GET | /api/analytics/brand | Brand analytics (PRO) |
 | GET | /api/analytics/influencer | Influencer analytics (PRO) |
 
+### Reviews (NEW)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/reviews | Create a review |
+| GET | /api/reviews/user/{id} | Get reviews for a user |
+| GET | /api/reviews/application/{id} | Get reviews for application |
+| GET | /api/reviews/pending | Get pending reviews |
+| GET | /api/influencers/top | Top 10 influencers by rating |
+
 ### Other
 | Method | Endpoint | Description |
 |--------|----------|-------------|
