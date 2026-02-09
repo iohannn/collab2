@@ -54,13 +54,15 @@ const AdminDashboard = () => {
 
   const fetchAdminData = async () => {
     try {
-      const [statsRes, usersRes, collabsRes, reportsRes, commRateRes, commissionsRes] = await Promise.all([
+      const [statsRes, usersRes, collabsRes, reportsRes, commRateRes, commissionsRes, disputesRes, cancellationsRes] = await Promise.all([
         fetch(`${API}/admin/stats`, { headers: getAuthHeaders(), credentials: 'include' }),
         fetch(`${API}/admin/users?limit=50`, { headers: getAuthHeaders(), credentials: 'include' }),
         fetch(`${API}/admin/collaborations?limit=50`, { headers: getAuthHeaders(), credentials: 'include' }),
         fetch(`${API}/admin/reports?limit=50`, { headers: getAuthHeaders(), credentials: 'include' }),
         fetch(`${API}/settings/commission`, { headers: getAuthHeaders(), credentials: 'include' }),
         fetch(`${API}/admin/commissions?limit=50`, { headers: getAuthHeaders(), credentials: 'include' }),
+        fetch(`${API}/admin/disputes?limit=50`, { headers: getAuthHeaders(), credentials: 'include' }),
+        fetch(`${API}/admin/cancellations?limit=50`, { headers: getAuthHeaders(), credentials: 'include' }),
       ]);
 
       if (statsRes.ok) setStats(await statsRes.json());
