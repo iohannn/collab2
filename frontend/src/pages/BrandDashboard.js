@@ -791,8 +791,70 @@ const BrandDashboard = () => {
               </div>
             )}
           </TabsContent>
+
+          {/* Disputed Tab */}
+          <TabsContent value="disputed">
+            {disputedCollabs.length > 0 ? (
+              <div className="space-y-4">
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-red-800">Colaborări cu dispute sau cereri de anulare active</p>
+                    <p className="text-sm text-red-600">Un administrator va analiza fiecare caz. Fondurile sunt securizate până la rezoluție.</p>
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {disputedCollabs.map((collab) => (
+                    <div key={collab.collab_id} className="relative">
+                      <CollaborationCard collaboration={collab} />
+                      <div className="absolute top-4 left-4 z-10">
+                        <Badge className="bg-red-100 text-red-700 gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          {collab.status === 'disputed' ? 'Dispută deschisă' : 'Cerere anulare'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-20 bg-white rounded-2xl border border-border">
+                <p className="text-muted-foreground">Nicio dispută activă</p>
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
+
+        {/* Messaging for selected collaboration */}
+        {selectedCollab && applications.some(a => a.status === 'accepted') && (
+          <div className="mt-8">
+            <CollabMessaging collabId={selectedCollab.collab_id} collabStatus={selectedCollab.status} />
+          </div>
+        )}
       </div>
+
+      {/* Dispute Dialog */}
+      {actionCollab && (
+        <DisputeDialog
+          collabId={actionCollab.collab_id}
+          collabTitle={actionCollab.title}
+          open={disputeOpen}
+          onOpenChange={setDisputeOpen}
+          onSuccess={fetchCollaborations}
+        />
+      )}
+
+      {/* Cancellation Dialog */}
+      {actionCollab && (
+        <CancellationDialog
+          collabId={actionCollab.collab_id}
+          collabTitle={actionCollab.title}
+          collabStatus={actionCollab.status}
+          open={cancelOpen}
+          onOpenChange={setCancelOpen}
+          onSuccess={fetchCollaborations}
+        />
+      )}
     </div>
   );
 };
