@@ -767,36 +767,39 @@ async def update_collaboration_status(collab_id: str, request: Request):
     if collab['brand_user_id'] != user['user_id']:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    await db.collaborations.update_one({'collab_id': collab_id}, {'$set': {'status': new_status}})
+    is_paid = collab.get('collaboration_type', 'paid') == 'paid'
     
-    # When collaboration is completed, calculate and record commission
-    if new_status == 'completed':
-        rate = await get_commission_rate()
-        accepted_apps = await db.applications.find({
-            'collab_id': collab_id,
-            'status': 'accepted'
-        }, {'_id': 0}).to_list(100)
+    # For paid collaborations: completed → completed_pending_release (not directly to completed)
+    if new_status == 'completed' and is_paid:
+        escrow = await db.escrow_payments.find_one({'collab_id': collab_id, 'status': 'secured'})
+        if not escrow:
+            raise HTTPException(status_code=400, detail="Fondurile trebuie securizate înainte de finalizare")
         
-        for app in accepted_apps:
-            proposed_price = app.get('proposed_price') or collab.get('budget_min', 0)
-            if proposed_price:
-                commission = round(proposed_price * rate / 100, 2)
-                net_amount = round(proposed_price - commission, 2)
-                
-                await db.commissions.insert_one({
-                    'commission_id': f"comm_{uuid.uuid4().hex[:12]}",
-                    'collab_id': collab_id,
-                    'application_id': app['application_id'],
-                    'brand_user_id': collab['brand_user_id'],
-                    'influencer_user_id': app['influencer_user_id'],
-                    'gross_amount': proposed_price,
-                    'commission_rate': rate,
-                    'commission_amount': commission,
-                    'net_amount': net_amount,
-                    'status': 'pending',
-                    'created_at': datetime.now(timezone.utc).isoformat()
-                })
+        # Set to pending release (confirmation window)
+        release_at = datetime.now(timezone.utc) + timedelta(hours=48)
+        await db.collaborations.update_one({'collab_id': collab_id}, {'$set': {
+            'status': 'completed_pending_release',
+            'payment_status': 'completed_pending_release',
+            'completed_at': datetime.now(timezone.utc).isoformat(),
+            'release_scheduled_at': release_at.isoformat()
+        }})
+        await db.escrow_payments.update_one({'escrow_id': escrow['escrow_id']}, {'$set': {
+            'status': 'completed_pending_release',
+            'completed_at': datetime.now(timezone.utc).isoformat(),
+            'release_scheduled_at': release_at.isoformat()
+        }})
+        return {'success': True, 'payment_status': 'completed_pending_release', 'release_scheduled_at': release_at.isoformat()}
     
+    # For free/barter collaborations: go directly to completed
+    if new_status == 'completed' and not is_paid:
+        await db.collaborations.update_one({'collab_id': collab_id}, {'$set': {
+            'status': 'completed',
+            'payment_status': 'none',
+            'completed_at': datetime.now(timezone.utc).isoformat()
+        }})
+        return {'success': True}
+    
+    await db.collaborations.update_one({'collab_id': collab_id}, {'$set': {'status': new_status}})
     return {'success': True}
 
 # ============ APPLICATION ENDPOINTS ============
