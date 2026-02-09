@@ -495,7 +495,7 @@ const InfluencerDashboard = () => {
                     data-testid={`my-app-${app.application_id}`}
                   >
                     <div className="flex items-start justify-between">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-lg mb-1">
                           {app.collaboration?.title || 'Colaborare'}
                         </h3>
@@ -508,14 +508,81 @@ const InfluencerDashboard = () => {
                             €{app.proposed_price}
                           </p>
                         )}
+                        {/* Escrow trust badge */}
+                        {app.status === 'accepted' && app.collaboration?.collaboration_type === 'paid' && (
+                          <div className="mt-3">
+                            {app.collaboration?.payment_status === 'secured' && (
+                              <Badge className="bg-green-100 text-green-700 gap-1">
+                                <Shield className="w-3 h-3" /> Fonduri securizate - plata garantată
+                              </Badge>
+                            )}
+                            {app.collaboration?.payment_status === 'released' && (
+                              <Badge className="bg-green-100 text-green-700 gap-1">
+                                <Unlock className="w-3 h-3" /> Fonduri eliberate
+                              </Badge>
+                            )}
+                            {app.collaboration?.payment_status === 'disputed' && (
+                              <Badge className="bg-red-100 text-red-700 gap-1">
+                                <AlertTriangle className="w-3 h-3" /> Dispută activă
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <Badge className={getStatusColor(app.status)}>
-                        {app.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
-                        {app.status === 'accepted' && <CheckCircle className="w-3 h-3 mr-1" />}
-                        {app.status === 'rejected' && <XCircle className="w-3 h-3 mr-1" />}
-                        {t(`collab.${app.status}`)}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge className={getStatusColor(app.status)}>
+                          {app.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
+                          {app.status === 'accepted' && <CheckCircle className="w-3 h-3 mr-1" />}
+                          {app.status === 'rejected' && <XCircle className="w-3 h-3 mr-1" />}
+                          {t(`collab.${app.status}`)}
+                        </Badge>
+                        {/* Action buttons for accepted applications */}
+                        {app.status === 'accepted' && (
+                          <div className="flex gap-1 mt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setMessagingCollab(messagingCollab?.collab_id === app.collab_id ? null : app.collaboration)}
+                              className="gap-1 text-xs"
+                              data-testid={`msg-btn-${app.application_id}`}
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              Mesaje
+                            </Button>
+                            {app.collaboration?.status === 'completed_pending_release' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => { setActionCollab(app.collaboration); setDisputeOpen(true); }}
+                                className="gap-1 text-xs text-red-600 border-red-200"
+                                data-testid={`dispute-inf-btn-${app.application_id}`}
+                              >
+                                <AlertTriangle className="w-3 h-3" />
+                                Raportează
+                              </Button>
+                            )}
+                            {['active', 'in_progress'].includes(app.collaboration?.status) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => { setActionCollab(app.collaboration); setCancelOpen(true); }}
+                                className="gap-1 text-xs text-muted-foreground"
+                                data-testid={`cancel-inf-btn-${app.application_id}`}
+                              >
+                                <XCircle className="w-3 h-3" />
+                                Anulează
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    {/* Messaging panel */}
+                    {messagingCollab?.collab_id === app.collab_id && app.status === 'accepted' && (
+                      <div className="mt-4 border-t border-border pt-4">
+                        <CollabMessaging collabId={app.collab_id} collabStatus={app.collaboration?.status} />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
