@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { CollaborationCard } from '../components/CollaborationCard';
+import { PendingReviewsBanner, ReviewDialog } from '../components/ReviewDialog';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -24,7 +25,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {
   Plus, Calendar as CalendarIcon, CheckCircle, XCircle, Clock, Users,
-  TrendingUp, Eye, MoreVertical, Trash2, Edit, Crown, Building2
+  TrendingUp, Eye, MoreVertical, Trash2, Edit, Crown, Building2, Star
 } from 'lucide-react';
 import {
   DropdownMenu,
