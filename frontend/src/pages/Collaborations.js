@@ -87,18 +87,31 @@ const Collaborations = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
-              placeholder={t('common.search')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 h-12 rounded-xl"
+              placeholder={`${t('common.search')} (titlu, brand, deliverables...)`}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-10 pr-10 h-12 rounded-xl"
               data-testid="search-input"
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
-          <Select value={platform} onValueChange={setPlatform}>
+          <Button type="submit" className="h-12 rounded-xl bg-primary text-primary-foreground">
+            <Search className="w-4 h-4 mr-2" />
+            Caută
+          </Button>
+          <Select value={platform} onValueChange={handlePlatformChange}>
             <SelectTrigger className="w-full sm:w-48 h-12 rounded-xl" data-testid="platform-filter">
               <SlidersHorizontal className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Platformă" />
@@ -110,7 +123,20 @@ const Collaborations = () => {
               <SelectItem value="youtube">YouTube</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </form>
+
+        {/* Active Search Badge */}
+        {search && (
+          <div className="flex items-center gap-2 mb-6">
+            <span className="text-sm text-muted-foreground">Rezultate pentru:</span>
+            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+              "{search}"
+            </span>
+            <button onClick={clearSearch} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Results */}
         {loading ? (
@@ -119,9 +145,9 @@ const Collaborations = () => {
               <div key={i} className="bg-white rounded-xl h-80 animate-pulse" />
             ))}
           </div>
-        ) : filteredCollabs.length > 0 ? (
+        ) : collaborations.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCollabs.map((collab) => (
+            {collaborations.map((collab) => (
               <CollaborationCard
                 key={collab.collab_id}
                 collaboration={collab}
@@ -133,9 +159,14 @@ const Collaborations = () => {
           <div className="text-center py-20 bg-white rounded-2xl border border-border">
             <Filter className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">Nicio colaborare găsită</h3>
-            <p className="text-muted-foreground">
-              Încearcă să schimbi filtrele sau caută altceva
+            <p className="text-muted-foreground mb-4">
+              {search ? `Nu am găsit rezultate pentru "${search}"` : 'Încearcă să schimbi filtrele'}
             </p>
+            {search && (
+              <Button variant="outline" onClick={clearSearch}>
+                Șterge căutarea
+              </Button>
+            )}
           </div>
         )}
       </div>
