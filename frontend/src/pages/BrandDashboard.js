@@ -613,6 +613,14 @@ const BrandDashboard = () => {
                         >
                           <Unlock className="w-4 h-4" /> Eliberează fonduri
                         </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => { setActionCollab(collab); setDisputeOpen(true); }}
+                          className="text-red-600 border-red-200 hover:bg-red-50 gap-1"
+                          data-testid={`dispute-btn-${collab.collab_id}`}
+                        >
+                          <AlertTriangle className="w-4 h-4" /> Raportează
+                        </Button>
                       </div>
                     </div>
                   ))}
