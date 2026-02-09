@@ -12,8 +12,10 @@ export const Login = () => {
   const { t } = useLanguage();
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: '', password: '' });
+  const redirectTo = searchParams.get('redirect') || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,7 +23,7 @@ export const Login = () => {
     try {
       await login(form.email, form.password);
       toast.success('Autentificare reușită!');
-      navigate('/dashboard');
+      navigate(redirectTo);
     } catch (error) {
       toast.error(error.message || 'Autentificarea a eșuat');
     } finally {
