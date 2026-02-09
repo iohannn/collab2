@@ -615,6 +615,128 @@ const AdminDashboard = () => {
               )}
             </div>
           </TabsContent>
+
+          {/* Disputes Tab */}
+          <TabsContent value="disputes">
+            <div className="space-y-4">
+              {disputes.disputes.length === 0 ? (
+                <div className="text-center py-12 bg-white border border-border rounded-xl">
+                  <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nicio dispută</p>
+                </div>
+              ) : (
+                disputes.disputes.map((d) => (
+                  <div key={d.dispute_id} className={`bg-white border rounded-xl p-6 ${d.status !== 'resolved' ? 'border-red-200' : 'border-border'}`}>
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className={d.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                            {d.status === 'resolved' ? 'Rezolvat' : 'Deschis'}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">{d.opener_type === 'brand' ? 'Brand' : 'Creator'}: {d.opener_name}</span>
+                        </div>
+                        <h4 className="font-semibold">{d.collaboration?.title || d.collab_id}</h4>
+                        <p className="text-sm font-medium text-red-600 mt-1">{d.reason}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{d.details}</p>
+                        {d.escrow && (
+                          <div className="mt-2 text-sm">
+                            <span className="text-muted-foreground">Escrow: </span>
+                            <span className="font-mono font-medium">€{d.escrow.total_amount}</span>
+                            <span className="text-muted-foreground"> (creator: €{d.escrow.influencer_payout}, comision: €{d.escrow.platform_commission})</span>
+                          </div>
+                        )}
+                        {d.message_history?.length > 0 && (
+                          <details className="mt-3">
+                            <summary className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1">
+                              <MessageSquare className="w-3 h-3" /> {d.message_history.length} mesaje în conversație
+                            </summary>
+                            <div className="mt-2 max-h-40 overflow-y-auto space-y-1 bg-muted/30 rounded-lg p-3">
+                              {d.message_history.map((msg) => (
+                                <div key={msg.message_id} className="text-xs">
+                                  <span className="font-medium">{msg.sender_name} ({msg.sender_type}):</span>{' '}
+                                  <span>{msg.content}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                        {d.resolution && (
+                          <div className="mt-3 bg-green-50 rounded-lg p-3 text-sm">
+                            <p className="font-medium text-green-700">Rezoluție: {d.resolution}</p>
+                            {d.admin_notes && <p className="text-green-600 mt-1">{d.admin_notes}</p>}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{new Date(d.created_at).toLocaleDateString('ro-RO')}</span>
+                    </div>
+                    {d.status !== 'resolved' && (
+                      <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleResolveDispute(d.dispute_id, 'release_to_influencer', 'Fonduri eliberate către creator')}>
+                          <Unlock className="w-3 h-3 mr-1" /> Eliberează către creator
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleResolveDispute(d.dispute_id, 'refund_to_brand', 'Rambursare completă către brand')}>
+                          <Undo2 className="w-3 h-3 mr-1" /> Rambursează brand
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleResolveDispute(d.dispute_id, 'split', 'Split echitabil', d.escrow?.influencer_payout * 0.5, d.escrow?.total_amount * 0.5)}>
+                          Split 50/50
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Cancellations Tab */}
+          <TabsContent value="cancellations">
+            <div className="space-y-4">
+              {cancellations.cancellations.length === 0 ? (
+                <div className="text-center py-12 bg-white border border-border rounded-xl">
+                  <XCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nicio cerere de anulare</p>
+                </div>
+              ) : (
+                cancellations.cancellations.map((c) => (
+                  <div key={c.cancellation_id} className={`bg-white border rounded-xl p-6 ${c.status === 'pending_admin_review' ? 'border-amber-200' : 'border-border'}`}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className={c.status === 'pending_admin_review' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'}>
+                            {c.status === 'pending_admin_review' ? 'Necesită review' : 'Rezolvat'}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">{c.requester_type === 'brand' ? 'Brand' : 'Creator'}</span>
+                        </div>
+                        <h4 className="font-semibold">{c.collaboration?.title || c.collab_id}</h4>
+                        <p className="text-sm mt-1"><span className="text-muted-foreground">Motiv:</span> {c.reason}</p>
+                        {c.details && <p className="text-sm text-muted-foreground mt-1">{c.details}</p>}
+                        {c.resolution && (
+                          <div className="mt-2 bg-green-50 rounded-lg p-2 text-sm">
+                            <p className="text-green-700 font-medium">Rezoluție: {c.resolution}</p>
+                            {c.admin_notes && <p className="text-green-600">{c.admin_notes}</p>}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString('ro-RO')}</span>
+                    </div>
+                    {c.status === 'pending_admin_review' && (
+                      <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+                        <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleResolveCancellation(c.cancellation_id, 'full_refund', 'Rambursare completă')}>
+                          <Undo2 className="w-3 h-3 mr-1" /> Rambursare completă
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleResolveCancellation(c.cancellation_id, 'partial_refund', 'Rambursare parțială', c.collaboration?.budget_min * 0.5)}>
+                          Rambursare 50%
+                        </Button>
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleResolveCancellation(c.cancellation_id, 'continue', 'Colaborarea continuă')}>
+                          <CheckCircle className="w-3 h-3 mr-1" /> Continuă colaborarea
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
 
         {/* User Edit Dialog */}
