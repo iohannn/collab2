@@ -101,6 +101,16 @@ export const Navbar = () => {
                     <User className="w-4 h-4 mr-2" />
                     {t('nav.profile')}
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/analytics')} data-testid="nav-analytics">
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Analytics
+                  </DropdownMenuItem>
+                  {user?.is_admin && (
+                    <DropdownMenuItem onClick={() => navigate('/admin')} data-testid="nav-admin">
+                      <Shield className="w-4 h-4 mr-2" />
+                      Admin
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} data-testid="nav-logout">
                     <LogOut className="w-4 h-4 mr-2" />
