@@ -36,6 +36,8 @@ const AdminDashboard = () => {
   const [reports, setReports] = useState([]);
   const [commissionRate, setCommissionRate] = useState(10);
   const [commissions, setCommissions] = useState({ commissions: [], total: 0, summary: { total_commission: 0, total_gross: 0 } });
+  const [disputes, setDisputes] = useState({ disputes: [], total: 0 });
+  const [cancellations, setCancellations] = useState({ cancellations: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [userFilter, setUserFilter] = useState('all');
