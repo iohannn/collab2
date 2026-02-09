@@ -471,9 +471,20 @@ const BrandDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="active" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="active" data-testid="tab-active">
               {t('collab.active')} ({activeCollabs.length})
+            </TabsTrigger>
+            {pendingReleaseCollabs.length > 0 && (
+              <TabsTrigger value="pending_release" data-testid="tab-pending-release" className="relative">
+                <Clock className="w-4 h-4 mr-1" />
+                Eliberare ({pendingReleaseCollabs.length})
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse" />
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="completed" data-testid="tab-completed">
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Finalizate ({completedCollabs.length})
             </TabsTrigger>
             <TabsTrigger value="closed" data-testid="tab-closed">
               {t('collab.closed')} ({closedCollabs.length})
