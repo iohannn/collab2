@@ -73,7 +73,18 @@ Build a web-based platform called "colaboreaza.ro", a reverse influencer marketp
 - **P2: Gamification Badges** - "Top Rated", "Verified" badges
 - **P2: Stripe Connect** - international payments
 - **P3: Complex Dispute Workflow** - evidence upload, timeline
-- **Refactoring:** Modularize server.py
+- **P2: Modularize server.js** - split into routes/, models/, controllers/
+- **P3: Frontend lint warnings** - fix useEffect dependency warnings
+
+## MERN Stack Migration Details (Completed Dec 2025)
+### Changes Made:
+- `/app/backend/server.js` - New Node.js/Express.js server (1074 lines)
+- `/app/backend/server.py` → `/app/backend/server.py.bak` - Python backup
+- `/etc/supervisor/conf.d/supervisord.conf` - Updated to run Node.js
+- Dependencies: express@5.2.1, mongodb@7.1.0, jsonwebtoken@9.0.3, bcryptjs@3.0.3, cors@2.8.6, dotenv@17.3.1, axios@1.13.5, uuid@13.0.0
+
+### Test Reports:
+- `/app/test_reports/iteration_8.json` - 100% pass (58 tests)
 
 ## Key API Endpoints
 - `/api/auth/{register, login, me, session, logout}`
