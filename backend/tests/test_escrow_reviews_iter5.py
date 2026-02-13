@@ -829,7 +829,9 @@ class TestReviewSystem:
         reviews_data = reviews_resp.json()
         
         # Both reviews should now be revealed
-        for review in reviews_data.get("reviews", []):
+        # API returns list directly, not wrapped in 'reviews' key
+        reviews_list = reviews_data if isinstance(reviews_data, list) else reviews_data.get("reviews", [])
+        for review in reviews_list:
             assert review.get("is_revealed") == True, f"Review {review.get('review_id')} should be revealed after both submit"
         
         print(f"✅ Mutual reveal works: both reviews are now is_revealed=true")
