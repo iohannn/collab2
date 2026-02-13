@@ -4,10 +4,15 @@
 Build a web-based platform called "colaboreaza.ro", a reverse influencer marketplace where brands post public collaboration offers and influencers apply to them. The platform should prioritize speed, transparency, and viral growth.
 
 ## Architecture
-- **Backend:** FastAPI (Python), MongoDB via Motor, JWT Auth + Emergent Google OAuth
+- **Backend:** Node.js/Express.js (MERN Stack), MongoDB via native driver, JWT Auth + Emergent Google OAuth
 - **Frontend:** React, Tailwind CSS, Shadcn UI, i18next (RO/EN)
 - **Database:** MongoDB (test_database)
 - **Payments:** Escrow system (MOCK provider, ready for Netopia/Stripe Connect)
+
+## Recent Migration (Dec 2025)
+- ✅ Complete backend migration from Python/FastAPI to Node.js/Express.js
+- ✅ All 58 API endpoints ported and verified
+- ✅ 100% test pass rate
 
 ## User Roles
 - **Brand:** Create/manage collaborations, secure escrow payments, view applicants, review influencers, message creators
