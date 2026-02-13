@@ -12,7 +12,7 @@ import os
 import uuid
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://collab-preview-3.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://mern-collab.preview.emergentagent.com')
 API = f"{BASE_URL}/api"
 
 # Test credentials

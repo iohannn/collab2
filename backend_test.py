@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any
 
 class ColaboreazaAPITester:
-    def __init__(self, base_url="https://collab-preview-3.preview.emergentagent.com"):
+    def __init__(self, base_url="https://mern-collab.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.token = None
@@ -326,7 +326,7 @@ class ColaboreazaAPITester:
         # Test checkout creation (should work but we won't complete payment)
         success, data, status = self.make_request('POST', 'payments/checkout', {
             "plan_id": "pro_monthly",
-            "origin_url": "https://collab-preview-3.preview.emergentagent.com"
+            "origin_url": "https://mern-collab.preview.emergentagent.com"
         })
         
         # This might fail due to Stripe configuration, but we test the endpoint
