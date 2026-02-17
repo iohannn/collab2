@@ -7,6 +7,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = 8001;
@@ -1061,6 +1063,15 @@ router.get('/payments/status/:session_id', async (req, res) => {
 
 // ============ MOUNT ROUTER ============
 app.use('/api', router);
+
+// Serve frontend static build when available in containerized deployment
+const frontendBuildPath = path.resolve(__dirname, '..', 'frontend', 'build');
+if (fs.existsSync(frontendBuildPath)) {
+  app.use(express.static(frontendBuildPath));
+  app.get(/^\/(?!api).*/, (req, res) => {
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+  });
+}
 
 // Start
 connectDB().then(() => {
