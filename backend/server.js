@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -9,7 +10,8 @@ const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
 
 const app = express();
-const PORT = 8001;
+const PORT = process.env.PORT || 8001;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Config
 const MONGO_URL = process.env.MONGO_URL;
