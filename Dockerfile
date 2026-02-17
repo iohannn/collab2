@@ -6,7 +6,7 @@ RUN npm install --legacy-peer-deps
 COPY frontend/ ./
 
 # Use relative API path in production ("/api")
-ARG REACT_APP_BACKEND_URL=""
+ARG REACT_APP_BACKEND_URL="http://colaboreaza.ro/"
 ENV REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}
 RUN npm run build
 
