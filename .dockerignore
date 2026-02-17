@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+*/node_modules
+
+# Build outputs (will be created in Docker)
+frontend/build
+
+# Development files
+.git
+.gitignore
+*.md
+.env
+.env.*
+!.env.example
+
+# Test files
+**/__tests__
+**/*.test.js
+**/*.spec.js
+test_reports
+backend/tests
+
+# Logs
+*.log
+logs
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.bak
+*.tmp
