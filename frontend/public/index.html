@@ -46,11 +46,26 @@
                 document.head.appendChild(tailwindScript);
             }
         </script>
-        <style>
-            #emergent-badge {
-                display: none !important;
-            }
-        </style>
+        <script>
+            // Remove Emergent badge even when it is injected with inline !important styles
+            (function () {
+                function removeBadge() {
+                    var badge = document.getElementById("emergent-badge");
+                    if (badge && badge.parentNode) {
+                        badge.parentNode.removeChild(badge);
+                    }
+                }
+
+                removeBadge();
+                document.addEventListener("DOMContentLoaded", removeBadge);
+                window.addEventListener("load", removeBadge);
+
+                var observer = new MutationObserver(function () {
+                    removeBadge();
+                });
+                observer.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        </script>
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
