@@ -24,6 +24,16 @@ const DEFAULT_COMMISSION_RATE = 10.0;
 const EMAIL_ENABLED = (process.env.EMAIL_ENABLED || 'false') === 'true';
 const REVIEW_REVEAL_TIMEOUT_DAYS = 14;
 
+if (!MONGO_URL) {
+  console.error('Missing required environment variable: MONGO_URL');
+  process.exit(1);
+}
+
+if (!DB_NAME) {
+  console.error('Missing required environment variable: DB_NAME');
+  process.exit(1);
+}
+
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
