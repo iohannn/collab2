@@ -2,11 +2,12 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps \
+  && npm install --no-save ajv@^8 ajv-keywords@^5
 COPY frontend/ ./
 
-# Use relative API path in production ("/api")
-ARG REACT_APP_BACKEND_URL="http://colaboreaza.ro/"
+# Frontend build-time API base URL
+ARG REACT_APP_BACKEND_URL="http://colaboreaza.ro/api"
 ENV REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}
 RUN npm run build
 
