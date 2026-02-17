@@ -1064,10 +1064,25 @@ router.get('/payments/status/:session_id', async (req, res) => {
 // ============ MOUNT ROUTER ============
 app.use('/api', router);
 
+// ============ SERVE FRONTEND (Production) ============
+if (NODE_ENV === 'production') {
+  const frontendPath = path.join(__dirname, '../frontend/build');
+  
+  // Serve static files from React build
+  app.use(express.static(frontendPath));
+  
+  // Handle React routing - serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+  
+  console.log('Production mode: Serving frontend from', frontendPath);
+}
+
 // Start
 connectDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Express server running on port ${PORT}`);
+    console.log(`Express server running on port ${PORT} (${NODE_ENV})`);
   });
 }).catch(err => {
   console.error('Failed to connect to MongoDB:', err);
