@@ -7,8 +7,7 @@ RUN npm install --legacy-peer-deps \
 COPY frontend/ ./
 
 # Frontend build-time API base URL
-# Default to same-origin for reverse-proxy platforms like Dockploy.
-ARG REACT_APP_BACKEND_URL="/api"
+ARG REACT_APP_BACKEND_URL="http://colaboreaza.ro/api"
 ENV REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}
 RUN npm run build
 
@@ -29,7 +28,10 @@ COPY --from=frontend-builder /app/frontend/build /app/frontend/build
 # Runtime environment variables (set real values in Dockploy)
 # Required in Dockploy: MONGO_URL, DB_NAME, JWT_SECRET
 # Optional in Dockploy: ADMIN_EMAILS, EMAIL_ENABLED
+ENV MONGO_URL=mongodb://mongo:ibbjba5pzkmn7hvu@185.185.80.245:27028
 ENV NODE_ENV=production
+ENV JWT_SECRET=gfgdgdfgdf
+ENV DB_NAME=collab
 ENV PORT=8001
 ENV EMAIL_ENABLED="false"
 
