@@ -2,16 +2,16 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 const { MongoClient } = require('mongodb');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
-const path = require('path');
-const fs = require('fs');
 
 const app = express();
-const PORT = 8001;
+const PORT = process.env.PORT || 8001;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Config
 const MONGO_URL = process.env.MONGO_URL;
@@ -23,16 +23,6 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',');
 const DEFAULT_COMMISSION_RATE = 10.0;
 const EMAIL_ENABLED = (process.env.EMAIL_ENABLED || 'false') === 'true';
 const REVIEW_REVEAL_TIMEOUT_DAYS = 14;
-
-if (!MONGO_URL) {
-  console.error('Missing required environment variable: MONGO_URL');
-  process.exit(1);
-}
-
-if (!DB_NAME) {
-  console.error('Missing required environment variable: DB_NAME');
-  process.exit(1);
-}
 
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
@@ -1074,19 +1064,25 @@ router.get('/payments/status/:session_id', async (req, res) => {
 // ============ MOUNT ROUTER ============
 app.use('/api', router);
 
-// Serve frontend static build when available in containerized deployment
-const frontendBuildPath = path.resolve(__dirname, '..', 'frontend', 'build');
-if (fs.existsSync(frontendBuildPath)) {
-  app.use(express.static(frontendBuildPath));
-  app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+// ============ SERVE FRONTEND (Production) ============
+if (NODE_ENV === 'production') {
+  const frontendPath = path.join(__dirname, '../frontend/build');
+  
+  // Serve static files from React build
+  app.use(express.static(frontendPath));
+  
+  // Handle React routing - serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
   });
+  
+  console.log('Production mode: Serving frontend from', frontendPath);
 }
 
 // Start
 connectDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Express server running on port ${PORT}`);
+    console.log(`Express server running on port ${PORT} (${NODE_ENV})`);
   });
 }).catch(err => {
   console.error('Failed to connect to MongoDB:', err);

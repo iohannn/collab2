@@ -28,10 +28,7 @@ COPY --from=frontend-builder /app/frontend/build /app/frontend/build
 # Runtime environment variables (set real values in Dockploy)
 # Required in Dockploy: MONGO_URL, DB_NAME, JWT_SECRET
 # Optional in Dockploy: ADMIN_EMAILS, EMAIL_ENABLED
-ENV MONGO_URL=mongodb://mongo:ibbjba5pzkmn7hvu@185.185.80.245:27028
 ENV NODE_ENV=production
-ENV JWT_SECRET=gfgdgdfgdf
-ENV DB_NAME=collab
 ENV PORT=8001
 ENV EMAIL_ENABLED="false"
 
