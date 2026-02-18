@@ -1072,7 +1072,8 @@ if (NODE_ENV === 'production') {
   app.use(express.static(frontendPath));
   
   // Handle React routing - serve index.html for all non-API routes
-  app.get('*', (req, res) => {
+  // Express 5 no longer accepts bare "*" path patterns.
+  app.get(/.*/, (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
   
