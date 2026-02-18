@@ -7,7 +7,8 @@ RUN npm install --legacy-peer-deps \
 COPY frontend/ ./
 
 # Frontend build-time API base URL
-ARG REACT_APP_BACKEND_URL="http://colaboreaza.ro/api"
+# Default to same-origin for reverse-proxy platforms like Dockploy.
+ARG REACT_APP_BACKEND_URL="/api"
 ENV REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}
 RUN npm run build
 
